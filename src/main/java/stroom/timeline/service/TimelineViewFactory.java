@@ -12,31 +12,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package stroom.timeline.model;
 
-import java.time.Duration;
+package stroom.timeline.service;
 
-public class Timeline {
-    private final int id;
-    private final String name;
-    private final Duration retention;
+import stroom.timeline.model.TimelineView;
 
-    public Timeline(int id, String name, Duration delay, Duration retention) {
-        this.id = id;
-        this.name = name;
-        this.retention = retention;
-    }
+public interface TimelineViewFactory {
 
-    public int getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Duration getRetention() {
-        return retention;
-    }
+    TimelineView getTimelineView(final String name);
 }

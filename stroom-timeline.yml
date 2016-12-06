@@ -1,0 +1,7 @@
+name: stroom-timeline
+root: ~/git_work/stroom-timeline/
+
+windows:
+  - shell:
+  - vim: vim pom.xml
+

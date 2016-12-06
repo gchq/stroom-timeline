@@ -17,6 +17,7 @@ package stroom.timeline.service;
 
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
+import stroom.timeline.model.TimelineView;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -24,6 +25,15 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public interface TimelineService {
+
+
+    Timeline fetchTimline(final String name);
+
+    Timeline fetchTimline(final int id);
+
+    Timeline fetchAllTimelines();
+
+    Timeline saveTimeline(final Timeline timeline);
 
     /**
      * Put a single event into the specified timeline. Events can be added in any order.
@@ -39,12 +49,15 @@ public interface TimelineService {
      */
     void putEvents(Timeline timeline, Collection<Event> events);
 
-    List<Event> take(Timeline timeline, int takeCount);
+    List<Event> take(TimelineView timelineView, int takeCount);
 
-    List<Event> poll(Timeline timeline, int takeCount);
+    List<Event> poll(TimelineView timelineView, int takeCount);
 
-    Stream<Event> stream(Timeline timeline);
+    /**
+     * Return an infinite stream of ordered events, will block if no events are available
+     */
+    Stream<Event> stream(TimelineView timelineView);
 
-    List<Event> takeRange(Timeline timeline, Instant fromMs, Instant toMs);
+    List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset);
 
 }

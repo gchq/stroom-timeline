@@ -25,8 +25,12 @@ public class TimelineView {
     private final Duration delay;
     private final Instant offset;
 
+    //TODO create a queue so clients can grab events off the top and it can be refilled from the bottom
+    //by calls to HBase. We can then prefetch some events to keep the queue stocked up removing any latency
+    //between the call to take/poll and getting the results.
 
-    public TimelineViewBuilder builder(Timeline timeline) {
+
+    public static TimelineViewBuilder builder(Timeline timeline) {
         return new TimelineViewBuilder(timeline);
     }
 

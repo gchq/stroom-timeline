@@ -1,8 +1,11 @@
 package stroom.timeline.model;
 
+import stroom.timeline.model.sequence.SequentialIdentifierProvider;
+import stroom.timeline.model.sequence.UuidIdentifierProvider;
+
 import java.time.Instant;
 
-public class OrderedEvent {
+public class OrderedEvent implements Comparable<OrderedEvent> {
 
     //provides uniqueness in case of a clash on time (which is quite likely)
     private final SequentialIdentifierProvider sequentialIdentifierProvider;
@@ -14,7 +17,7 @@ public class OrderedEvent {
         this.sequentialIdentifierProvider = sequentialIdentifierProvider;
     }
     public OrderedEvent(Instant eventTime, byte[] content) {
-        this(eventTime, content, new DefaultSequentialIdentifierProviderImpl());
+        this(eventTime, content, new UuidIdentifierProvider());
     }
 
     public byte[] getSequentialIdentifier() {
@@ -43,5 +46,10 @@ public class OrderedEvent {
                 "event=" + event +
                 ", sequentialIdentifier=" + sequentialIdentifierProvider.toHumanReadable() +
                 '}';
+    }
+
+    @Override
+    public int compareTo(OrderedEvent other) {
+        return this.event.compareTo(other.getEvent());
     }
 }

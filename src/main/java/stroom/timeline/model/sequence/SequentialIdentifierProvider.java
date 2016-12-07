@@ -12,15 +12,16 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package stroom.timeline.model;
+package stroom.timeline.model.sequence;
 
 /**
  * Used to provide an identifier that is globally unique and also
  * defines an order of events in cases where the event time is not
  * sufficiently granular to do this.
  */
-public interface SequentialIdentifierProvider {
+public interface SequentialIdentifierProvider<T> {
 
     /**
      * @return The sequence number as a byte array. The identifier needs
@@ -36,4 +37,6 @@ public interface SequentialIdentifierProvider {
      * @return A human readbale representation of the identifier
      */
     String toHumanReadable();
+
+    T getValue();
 }

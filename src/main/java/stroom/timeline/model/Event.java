@@ -16,19 +16,14 @@
 package stroom.timeline.model;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public class Event {
     private final Instant eventTime;
     private byte[] content;
-    //provides uniqueness in case of a clash on time (which is quite likely)
-    private final UUID uuid;
 
-
-    public Event(Instant eventTime, byte[] content, UUID uuid) {
+    public Event(Instant eventTime, byte[] content) {
         this.eventTime = eventTime;
         this.content = content;
-        this.uuid = uuid;
     }
 
     public Instant getEventTime() {
@@ -39,15 +34,5 @@ public class Event {
         return content;
     }
 
-    public UUID getUuid() {
-        return uuid;
-    }
 
-    @Override
-    public String toString() {
-        return "Event{" +
-                "eventTime=" + eventTime +
-                ", uuid=" + uuid +
-                '}';
-    }
 }

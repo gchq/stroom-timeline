@@ -19,6 +19,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.hbase.structure.QualifiedCell;
 import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
+import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.util.UuidAdapter;
 
 import java.time.Instant;
@@ -29,14 +30,14 @@ public class QualifiedCellAdapter {
     private QualifiedCellAdapter() {
     }
 
-    public static QualifiedCell getQualifiedCell(Event event){
+    public static QualifiedCell getQualifiedCell(OrderedEvent orderedEvent){
 
-        RowKey rowKey = RowKeyAdapter.getRowKey(event);
+        RowKey rowKey = RowKeyAdapter.getRowKey(orderedEvent.getEvent());
 
-        byte[] colQualifier = UuidAdapter.getBytesFromUUID(event.getUuid());
+        byte[] colQualifier = orderedEvent.getSequentialIdentifier();
 
 
-        QualifiedCell qualifiedCell = new QualifiedCell(rowKey, colQualifier, event.getContent());
+        QualifiedCell qualifiedCell = new QualifiedCell(rowKey, colQualifier, orderedEvent.getContent());
 
         return qualifiedCell;
     }
@@ -45,7 +46,7 @@ public class QualifiedCellAdapter {
 
         UUID uuid = UuidAdapter.getUUIDFromBytes(qualifiedCell.getColumnQualifier());
         Instant eventTime = Instant.ofEpochMilli(Bytes.toLong(qualifiedCell.getRowKey().getEventTimeBytes()));
-        Event event = new Event(eventTime, qualifiedCell.getValue(), uuid);
+        Event event = new Event(eventTime, qualifiedCell.getValue());
         return  event;
     }
 }

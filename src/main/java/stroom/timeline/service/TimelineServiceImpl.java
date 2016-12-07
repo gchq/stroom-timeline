@@ -17,6 +17,7 @@ package stroom.timeline.service;
 
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
+import stroom.timeline.model.TimelineView;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -25,20 +26,34 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class TimelineServiceImpl  implements TimelineService {
-    private final String longName;
-    private final String shortName;
+//    private final String longName;
+//    private final String shortName;
+//
+//
+//    public TimelineServiceImpl(String longName, String shortName) {
+//        this.longName = longName;
+//        this.shortName = shortName;
+//
+//    }
 
-    //TODO need some way of handling multiple events with the same millisecond time instant
-    //if we do nothing then multiple puts to the same row key will result in multiple cell versions.
-    //this may be acceptable if the number of events per timestamp is not to great.
-    //The alternative is to put each event into a different column on the row, but we need some way of creating
-    //a unique col qualifier
-//    private final AtomicLong sequenceNo;
+    @Override
+    public Timeline fetchTimeline(String name) {
+        return null;
+    }
 
-    public TimelineServiceImpl(String longName, String shortName) {
-        this.longName = longName;
-        this.shortName = shortName;
+    @Override
+    public Timeline fetchTimeline(int id) {
+        return null;
+    }
 
+    @Override
+    public Timeline fetchAllTimelines() {
+        return null;
+    }
+
+    @Override
+    public Timeline saveTimeline(Timeline timeline) {
+        return null;
     }
 
     @Override
@@ -52,22 +67,23 @@ public class TimelineServiceImpl  implements TimelineService {
     }
 
     @Override
-    public List<Event> take(Timeline timeline, int takeCount) {
+    public List<Event> take(TimelineView timelineView, int takeCount) {
         return null;
     }
 
     @Override
-    public List<Event> poll(Timeline timeline, int takeCount) {
+    public List<Event> poll(TimelineView timelineView, int takeCount) {
         return null;
     }
 
     @Override
-    public Stream<Event> stream(Timeline timeline) {
+    public Stream<Event> stream(TimelineView timelineView) {
         return null;
     }
 
     @Override
-    public List<Event> takeRange(Timeline timeline, Instant fromMs, Instant toMs) {
+    public List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset) {
         return null;
     }
+
 }

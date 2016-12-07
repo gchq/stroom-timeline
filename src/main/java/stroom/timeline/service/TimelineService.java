@@ -27,9 +27,9 @@ import java.util.stream.Stream;
 public interface TimelineService {
 
 
-    Timeline fetchTimline(final String name);
+    Timeline fetchTimeline(final String name);
 
-    Timeline fetchTimline(final int id);
+    Timeline fetchTimeline(final int id);
 
     Timeline fetchAllTimelines();
 

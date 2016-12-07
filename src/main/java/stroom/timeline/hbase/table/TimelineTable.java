@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.hbase.adapters.QualifiedCellAdapter;
 import stroom.timeline.hbase.structure.QualifiedCell;
-import stroom.timeline.model.Event;
+import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
 import stroom.timeline.properties.PropertyService;
 
@@ -56,7 +56,6 @@ public class TimelineTable extends AbstractTable {
     //TODO with a TTL on the col family that will work off the insertion time rather than the event time
     //hopefully this will be reasonable enough as most data will come in within a few minutes of the event time
 
-    //TODO should we pass code in here or should it be a prop of Timeline.  Code identifies timeline in the meta table
 
     public TimelineTable(Timeline timeline, int timelineCode, HBaseConnection hBaseConnection, PropertyService propertyService) {
         super(hBaseConnection, propertyService);
@@ -88,10 +87,10 @@ public class TimelineTable extends AbstractTable {
         return mutations.stream();
     };
 
-    public void putEvents(Collection<Event> events) throws InterruptedException {
+    public void putEvents(Collection<OrderedEvent> orderedEvents) throws InterruptedException {
 
         try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
-            events.stream()
+            orderedEvents.stream()
                     .map(QualifiedCellAdapter::getQualifiedCell)
                     .flatMap(qualifiedCellToMutationsMapper)
                     .forEach(mutation -> {
@@ -108,7 +107,7 @@ public class TimelineTable extends AbstractTable {
                         }
                     });
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Error while trying persist a collection of events of size %s", events.size()), e);
+            throw new RuntimeException(String.format("Error while trying persist a collection of orderedEvents of size %s", orderedEvents.size()), e);
         }
     }
 

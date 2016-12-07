@@ -18,7 +18,7 @@ package stroom.timeline.hbase.table;
 
 import org.junit.Assert;
 import org.junit.Test;
-import stroom.timeline.model.Event;
+import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
 import stroom.timeline.properties.MockPropertyService;
 
@@ -28,7 +28,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class TestTimelineTable extends  AbstractTableTest {
 
@@ -38,19 +37,19 @@ public class TestTimelineTable extends  AbstractTableTest {
     @Test
     public void testPutEvents() throws InterruptedException, IOException {
 
-        List<Event> events = new ArrayList<>();
+        List<OrderedEvent> orderedEvents = new ArrayList<>();
 
-        Event event1 = new Event(Instant.now().minus(5, ChronoUnit.MINUTES), new byte[] {1,2,3}, UUID.randomUUID());
-        Event event2 = new Event(Instant.now().minus(10, ChronoUnit.MINUTES), new byte[] {1,2,3}, UUID.randomUUID());
+        OrderedEvent event1 = new OrderedEvent(Instant.now().minus(5, ChronoUnit.MINUTES), new byte[] {1,2,3});
+        OrderedEvent event2 = new OrderedEvent(Instant.now().minus(10, ChronoUnit.MINUTES), new byte[] {1,2,3});
 
-        events.add(event1);
-        events.add(event2);
+        orderedEvents.add(event1);
+        orderedEvents.add(event2);
 
-        Timeline timeline = new Timeline("Timeline1", Duration.ofSeconds(1), Duration.ofHours(1));
+        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofSeconds(1), Duration.ofHours(1));
 
         TimelineTable timelineTable = new TimelineTable(timeline, 0, super.hBaseTestUtilConnection,  propertyService);
 
-        timelineTable.putEvents(events);
+        timelineTable.putEvents(orderedEvents);
 
         Assert.assertEquals(2, super.hBaseTestUtilConnection.gethBaseTestingUtility().countRows(timelineTable.getTable()));
     }

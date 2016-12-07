@@ -21,22 +21,40 @@ public class Timeline {
     private final int id;
     private final String name;
     private final Duration retention;
+    private final int saltCount;
 
-    public Timeline(int id, String name, Duration delay, Duration retention) {
+    public Timeline(final int id, final String name, final Duration delay, final Duration retention, final int saltCount) {
         this.id = id;
         this.name = name;
         this.retention = retention;
+        this.saltCount = saltCount;
     }
 
+    /**
+     * @return The unique identifier for the timeline
+     */
     public int getId() {
         return id;
     }
 
+    /**
+     * @return The human readable name of the timeline
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * @return The time period values are held in the timeline before being purged
+     */
     public Duration getRetention() {
         return retention;
+    }
+
+    /**
+     * @return The number of different salt values for this timeline
+     */
+    public int getSaltCount() {
+        return saltCount;
     }
 }

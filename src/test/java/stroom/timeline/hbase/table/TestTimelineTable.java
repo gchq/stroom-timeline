@@ -45,7 +45,7 @@ public class TestTimelineTable extends  AbstractTableTest {
         orderedEvents.add(event1);
         orderedEvents.add(event2);
 
-        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofSeconds(1), Duration.ofHours(1));
+        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofSeconds(1), Duration.ofHours(1), 1);
 
         TimelineTable timelineTable = new TimelineTable(timeline, 0, super.hBaseTestUtilConnection,  propertyService);
 

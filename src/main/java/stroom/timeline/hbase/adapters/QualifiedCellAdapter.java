@@ -20,19 +20,19 @@ import stroom.timeline.hbase.structure.QualifiedCell;
 import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.OrderedEvent;
-import stroom.timeline.util.UuidAdapter;
+import stroom.timeline.model.Timeline;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public class QualifiedCellAdapter {
 
     private QualifiedCellAdapter() {
     }
 
-    public static QualifiedCell getQualifiedCell(OrderedEvent orderedEvent){
+    //TODO don't think this will be needed
+    public static QualifiedCell getQualifiedCell(Timeline timeline, OrderedEvent orderedEvent){
 
-        RowKey rowKey = RowKeyAdapter.getRowKey(orderedEvent.getEvent());
+        RowKey rowKey = RowKeyAdapter.getRowKey(timeline, orderedEvent.getEvent());
 
         byte[] colQualifier = orderedEvent.getSequentialIdentifier();
 
@@ -44,7 +44,6 @@ public class QualifiedCellAdapter {
 
     public static Event getEvent(QualifiedCell qualifiedCell){
 
-        UUID uuid = UuidAdapter.getUUIDFromBytes(qualifiedCell.getColumnQualifier());
         Instant eventTime = Instant.ofEpochMilli(Bytes.toLong(qualifiedCell.getRowKey().getEventTimeBytes()));
         Event event = new Event(eventTime, qualifiedCell.getValue());
         return  event;

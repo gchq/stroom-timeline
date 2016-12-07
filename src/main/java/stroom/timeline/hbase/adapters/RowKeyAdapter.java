@@ -16,20 +16,52 @@
 package stroom.timeline.hbase.adapters;
 
 import org.apache.hadoop.hbase.util.Bytes;
+import stroom.timeline.hbase.Salt;
 import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
+import stroom.timeline.model.Timeline;
+import stroom.timeline.model.TimelineView;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RowKeyAdapter {
 
-    private static final short HARD_CODED_SALT = 0;
 
-    public static RowKey getRowKey(Event event) {
-        byte[] salt = Bytes.toBytes(HARD_CODED_SALT);
-        byte[] eventTime = Bytes.toBytes(event.getEventTime().toEpochMilli());
-        return new RowKey(salt, eventTime);
+    /**
+     * @return The row key for the current offset of the timeline view
+     */
+    public static RowKey getRowKey(TimelineView timelineView) {
+        return getRowKey(timelineView.getTimeline(), timelineView.getOffset());
     }
+
+    public static List<RowKey> getAllRowKeys(TimelineView timelineView){
+        List<RowKey> rowKeys = new ArrayList<>();
+        for (short salt : Salt.getAllSalts()) {
+            RowKey rowKey = getRowKey(salt, timelineView.getOffset());
+            rowKeys.add(rowKey);
+        }
+        return rowKeys;
+    }
+
+    public static RowKey getRowKey(short salt, Instant time) {
+        byte[] bSalt = Bytes.toBytes(salt);
+        byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
+        return new RowKey(bSalt, bEventTime);
+    }
+    /**
+     * @return A row key for the timeline and a point on that timeline
+     */
+    public static RowKey getRowKey(Timeline timeline, Instant time) {
+        short salt = Salt.computeSalt(time,timeline.getSaltCount());
+        return getRowKey(salt, time);
+    }
+
+    public static RowKey getRowKey(Timeline timeline, Event event) {
+        return getRowKey(timeline, event.getEventTime());
+    }
+
 
     public static short getSalt(RowKey rowKey) {
         return Bytes.toShort(rowKey.getSaltBytes());
@@ -40,4 +72,5 @@ public class RowKeyAdapter {
         return Instant.ofEpochMilli(Bytes.toLong(rowKey.getEventTimeBytes()));
 
     }
+
 }

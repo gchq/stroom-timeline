@@ -48,14 +48,6 @@ public class RowKey {
         this.bRowKey = ByteBuffer.wrap(key).put(salt).put(eventTime).array();
     }
 
-    public short getSalt() {
-        return Bytes.toShort(getSaltBytes());
-    }
-
-    public long getEventTime() {
-        return Bytes.toShort(getEventTimeBytes());
-    }
-
     public byte[] getRowKeyBytes() {
         return bRowKey;
     }

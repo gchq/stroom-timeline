@@ -196,13 +196,17 @@ public class TimelineTable extends AbstractTable {
 
         List<Mutation> mutations = new ArrayList<>();
 
-        byte[] rowKey = qualifiedCell.getRowKey().getRowKeyBytes();
-        Put eventPut = new Put(rowKey)
-                .addColumn(COL_FAMILY_CONTENT, qualifiedCell.getColumnQualifier(), qualifiedCell.getValue());
+        RowKey rowKey = qualifiedCell.getRowKey();
+        long eventTimeMs = RowKeyAdapter.getEventTime(rowKey).toEpochMilli();
+        byte[] bRowKey = rowKey.getRowKeyBytes();
+
+        //do the put with the event time as the cell timestamp, instead of HBase just using the default now()
+        Put eventPut = new Put(bRowKey)
+                .addColumn(COL_FAMILY_CONTENT, qualifiedCell.getColumnQualifier(), eventTimeMs, qualifiedCell.getValue());
 
         //TODO do we care about having a row change number, probably adds a fair bit of cost and
         //we can't combine the put and increment into a single row op so will probably require two row locks
-        Increment ecnIncrement = new Increment(rowKey)
+        Increment ecnIncrement = new Increment(bRowKey)
                 .addColumn(COL_FAMILY_META, COL_ROW_CHANGE_NUMBER, 1L);
         mutations.add(eventPut);
         mutations.add(ecnIncrement);

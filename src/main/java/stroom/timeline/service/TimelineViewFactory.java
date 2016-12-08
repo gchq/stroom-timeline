@@ -19,6 +19,7 @@ package stroom.timeline.service;
 
 import stroom.timeline.model.TimelineView;
 
+@Deprecated
 public interface TimelineViewFactory {
 
     TimelineView getTimelineView(final String name);

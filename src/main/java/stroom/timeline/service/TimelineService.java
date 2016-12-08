@@ -22,16 +22,17 @@ import stroom.timeline.model.TimelineView;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public interface TimelineService {
 
 
-    Timeline fetchTimeline(final String name);
+    Optional<Timeline> fetchTimeline(final String name);
 
-    Timeline fetchTimeline(final int id);
+    Optional<Timeline> fetchTimeline(final int id);
 
-    Timeline fetchAllTimelines();
+    List<Timeline> fetchAllTimelines();
 
     Timeline saveTimeline(final Timeline timeline);
 
@@ -49,8 +50,11 @@ public interface TimelineService {
      */
     void putEvents(Timeline timeline, Collection<Event> events);
 
-    List<Event> take(TimelineView timelineView, int takeCount);
+    //TODO should the builder for the TimelineView be in here?
 
+    //TODO should take/poll/stream/takeRange/etc be on the TimelineView as opposed to here
+    //as that will probably hold some form of internal queue with the data in it
+    List<Event> take(TimelineView timelineView, int takeCount);
     List<Event> poll(TimelineView timelineView, int takeCount);
 
     /**

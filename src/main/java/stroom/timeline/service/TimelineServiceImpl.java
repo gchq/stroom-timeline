@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class TimelineServiceImpl  implements TimelineService {
@@ -37,17 +38,17 @@ public class TimelineServiceImpl  implements TimelineService {
 //    }
 
     @Override
-    public Timeline fetchTimeline(String name) {
+    public Optional<Timeline> fetchTimeline(String name) {
         return null;
     }
 
     @Override
-    public Timeline fetchTimeline(int id) {
+    public Optional<Timeline> fetchTimeline(int id) {
         return null;
     }
 
     @Override
-    public Timeline fetchAllTimelines() {
+    public List<Timeline> fetchAllTimelines() {
         return null;
     }
 

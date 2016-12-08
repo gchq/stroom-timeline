@@ -22,17 +22,17 @@ import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.properties.PropertyService;
 
-public class MetaTable extends AbstractTable {
+public class TimelineMetaTable extends AbstractTable {
 
     private final String LONG_NAME = "MataData";
-    private final String SHORT_NAME = "m";
+    private final String SHORT_NAME = "tm";
     private static final String COL_FAMILY_DATA = "d";
     private final HBaseConnection hBaseConnection;
     private final PropertyService propertyService;
     private final byte[] bShortName = Bytes.toBytes(SHORT_NAME);
     private final TableName tableName = TableName.valueOf(bShortName);
 
-    public MetaTable(HBaseConnection hBaseConnection, PropertyService propertyService) {
+    public TimelineMetaTable(HBaseConnection hBaseConnection, PropertyService propertyService) {
         super(hBaseConnection, propertyService);
         this.hBaseConnection = hBaseConnection;
         this.propertyService = propertyService;

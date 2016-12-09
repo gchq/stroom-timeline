@@ -26,22 +26,37 @@ public class Timeline {
     private int id;
     private final String name;
     private final Duration retention;
-    private final int saltCount;
+    private final Salt salt;
+//    private final int saltCount;
+//    private  final Duration saltRangeDuration;
 
-    public Timeline(final String name, final Duration retention, final int saltCount) {
-        this(DETACHED_OBJECT_ID, name, retention, saltCount);
+    public Timeline(final String name, final Duration retention) {
+        this(DETACHED_OBJECT_ID, name, retention, 1, Duration.ZERO);
     }
 
-    public Timeline(final int id, final String name, final Duration retention, final int saltCount) {
+    public Timeline(final String name, final Duration retention, final int saltCount, final Duration saltRangeDuration) {
+        this(DETACHED_OBJECT_ID, name, retention, saltCount, saltRangeDuration);
+    }
 
-        Preconditions.checkArgument(id > 0, "id must be greater than 0");
+    private Timeline(final int id, final String name, final Duration retention, final int saltCount, final Duration saltRangeDuration) {
+
+        Preconditions.checkArgument(id == DETACHED_OBJECT_ID || id >= 0, "id must be greater than or equal to 0");
         Preconditions.checkArgument(name != null && name.length() > 0, "Name must be at least one character in length");
         Preconditions.checkArgument(saltCount > 0, "saltCount must be greater than 0");
+        Preconditions.checkNotNull(saltRangeDuration);
 
         this.id = id;
         this.name = name;
         this.retention = retention != null ? retention : Duration.ZERO;
-        this.saltCount = saltCount;
+        this.salt = new Salt(saltCount, saltRangeDuration);
+    }
+
+    /**
+     * @param id The unique identifier for the timeline
+     * @return A new instance of Timeline copied from this with the new ID applied
+     */
+    public Timeline assignId(final int id) {
+        return new Timeline(id, name, retention, getSalt().getSaltCount(), getSalt().getSaltRangeDuration());
     }
 
     /**
@@ -65,11 +80,8 @@ public class Timeline {
         return retention.equals(Duration.ZERO) ? Optional.empty() : Optional.of(retention);
     }
 
-    /**
-     * @return The number of different salt values for this timeline
-     */
-    public int getSaltCount() {
-        return saltCount;
+    public Salt getSalt() {
+        return salt;
     }
 
     public PersistedState getPersistedState() {
@@ -77,16 +89,16 @@ public class Timeline {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Timeline timeline = (Timeline) o;
+        final Timeline timeline = (Timeline) o;
 
         if (id != timeline.id) return false;
-        if (saltCount != timeline.saltCount) return false;
         if (!name.equals(timeline.name)) return false;
-        return retention.equals(timeline.retention);
+        if (!retention.equals(timeline.retention)) return false;
+        return salt.equals(timeline.salt);
     }
 
     @Override

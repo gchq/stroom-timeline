@@ -34,7 +34,7 @@ import java.util.concurrent.ConcurrentMap;
 public class HBaseTimelineService implements TimelineService {
 
     //TODO just temporary until the timelineMeta table is implemented
-    private static final Timeline HARD_CODED_TIMELINE = new Timeline(0,"HardCodedTimeLine", Duration.ofDays(30), 1);
+    private static final Timeline HARD_CODED_TIMELINE = new Timeline("HardCodedTimeLine", Duration.ofDays(30)).assignId(1);
 
     private final HBaseConnection hBaseConnection;
 

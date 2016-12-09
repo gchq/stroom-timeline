@@ -46,20 +46,20 @@ import java.util.stream.StreamSupport;
 /**
  * DAO for the Timeline HBase table
  *
- * This is how the data is stored, assuming a
- * contiguous data set
+ * This is how the data is stored, assuming a contiguous data set.
  *
- * salt|---------------time----------------->
+ *       |   min 1   |  min 2    | min 3     |
+ * salt|---------------time-------------------->
  * 0   | ###         ###         ###
  * 1   |    ###         ###         ###
  * 2   |       ###         ###         ###
  * 3   |          ###         ###         ###
  *
- *
- *
- *
- *
- *
+ * If we use the modulus for the salt then this would spread the values
+ * all over the place and mean a lot of sorting overhead on retrieval.
+ * Instead time ranges have a static salt value so that we can grab a range
+ * from each salt value and then just sort the small number of batches by their
+ * salt value.
  */
 public class TimelineTable extends AbstractTable {
 
@@ -126,7 +126,7 @@ public class TimelineTable extends AbstractTable {
                     timelineView.getTimeline().getId(), timeline.getId()));
         }
 
-        int scanMaxResults = rowCount / timelineView.getTimeline().getSaltCount();
+        int scanMaxResults = rowCount / timelineView.getTimeline().getSalt().getSaltCount();
 
         //The time that all delay clalculations are based off for consistentcy
         Instant now = Instant.now();
@@ -138,7 +138,6 @@ public class TimelineTable extends AbstractTable {
                     Scan scan = new Scan(startKey.getRowKeyBytes())
                             .addFamily(COL_FAMILY_CONTENT)
                             .setMaxResultSize(scanMaxResults);
-
 
                     //TODO need to set a stop row so we get one contiguous chunk of rows for a
                     //time bucket and not jump onto another time bucket.
@@ -249,10 +248,16 @@ public class TimelineTable extends AbstractTable {
     private static class EventsBucket implements  Comparable<EventsBucket> {
         private final List<Event> events;
         private final byte[] bSalt;
+        private final Instant firstEventTime;
 
-        public EventsBucket(List<Event> events, byte[] bSalt) {
+        /**
+         * @param events A list of events supplied sorted by the event time
+         * @param bSalt The salt value in bytes for this batch of events
+         */
+        public EventsBucket(final List<Event> events, final byte[] bSalt) {
             this.events = events;
             this.bSalt = bSalt;
+            this.firstEventTime = events.isEmpty() ? Instant.EPOCH : events.get(0).getEventTime();
         }
 
         public Stream<Event> stream() {
@@ -265,7 +270,9 @@ public class TimelineTable extends AbstractTable {
 
         @Override
         public int compareTo(EventsBucket other) {
-            return Bytes.compareTo(this.bSalt, other.bSalt);
+//            return Bytes.compareTo(this.bSalt, other.bSalt);
+            //All events in the
+            return firstEventTime.compareTo(other.firstEventTime);
         }
     }
 }

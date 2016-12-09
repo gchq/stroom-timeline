@@ -60,7 +60,7 @@ public class TestTimelineTable extends AbstractTableTest {
     }
 
     private TimelineTable getTimelineTable() {
-        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofDays(400), 1);
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400)).assignId(1);
 
         return new TimelineTable(timeline, super.hBaseTestUtilConnection);
     }
@@ -76,7 +76,7 @@ public class TestTimelineTable extends AbstractTableTest {
         List<OrderedEvent> events = new ArrayList<>();
 
         final AtomicLong counter = new AtomicLong(0);
-        final int eventCount = 100;
+        final int eventCount = 1000;
 
         List<OrderedEvent> randomEvents = new Random()
                 .longs(eventCount, 0, 365)
@@ -100,7 +100,7 @@ public class TestTimelineTable extends AbstractTableTest {
 
 //        eventsInOrder.stream().forEach(System.out::println);
 
-        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofDays(400), 1);
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400)).assignId(1);
 
         TimelineTable timelineTable = new TimelineTable(timeline, super.hBaseTestUtilConnection);
 

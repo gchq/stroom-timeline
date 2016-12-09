@@ -35,18 +35,21 @@ public class HBaseTimelineViewBuilder implements TimelineViewBuilder {
         this.timeline = timeline;
     }
 
+    @Override
     public HBaseTimelineViewBuilder setDelay(Duration delay) {
         Preconditions.checkNotNull(delay);
         this.delay = delay;
         return this;
     }
 
+    @Override
     public HBaseTimelineViewBuilder setOffset(Instant offset) {
         Preconditions.checkNotNull(offset);
         this.offset = offset;
         return this;
     }
 
+    @Override
     public TimelineView build() {
         return new HBaseTimelineView(timeline, delay, offset);
     }

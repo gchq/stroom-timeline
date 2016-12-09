@@ -16,11 +16,10 @@
 package stroom.timeline.hbase.adapters;
 
 import org.apache.hadoop.hbase.util.Bytes;
-import stroom.timeline.hbase.Salt;
+import stroom.timeline.api.TimelineView;
 import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.api.TimelineView;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class RowKeyAdapter {
 
     public static List<RowKey> getAllRowKeys(TimelineView timelineView){
         List<RowKey> rowKeys = new ArrayList<>();
-        for (short salt : Salt.getAllSalts()) {
+        for (short salt : timelineView.getSalt().getAllSaltValues()) {
             RowKey rowKey = getRowKey(salt, timelineView.getOffset());
             rowKeys.add(rowKey);
         }
@@ -59,7 +58,7 @@ public class RowKeyAdapter {
      * @return A row key for the timeline and a point on that timeline
      */
     public static RowKey getRowKey(Timeline timeline, Instant time) {
-        short salt = Salt.computeSalt(time,timeline.getSaltCount());
+        short salt = timeline.getSalt().computeSalt(time);
         return getRowKey(salt, time);
     }
 

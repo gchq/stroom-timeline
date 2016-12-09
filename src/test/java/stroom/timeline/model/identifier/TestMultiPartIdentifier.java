@@ -23,7 +23,7 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-public class MultiPartIdentifierTest {
+public class TestMultiPartIdentifier {
 
     String strVal = "MyString";
     Long longVal = 123456789L;

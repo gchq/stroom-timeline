@@ -18,11 +18,13 @@
 package stroom.timeline.api;
 
 import stroom.timeline.model.Event;
+import stroom.timeline.model.Salt;
 import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
@@ -65,4 +67,30 @@ public interface TimelineView {
     Stream<Event> stream(TimelineView timelineView);
 
     List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset);
+
+
+    /**
+     * @return The unique identifier for the timeline
+     */
+    public default int getId() {
+        return getTimeline().getId();
+    }
+
+    /**
+     * @return The human readable name of the timeline
+     */
+    public default String getName() {
+        return getTimeline().getName();
+    }
+
+    /**
+     * @return The time period values are held in the timeline before being purged
+     */
+    public default Optional<Duration> getRetention() {
+        return getTimeline().getRetention();
+    }
+
+    public default Salt getSalt() {
+        return getTimeline().getSalt();
+    }
 }

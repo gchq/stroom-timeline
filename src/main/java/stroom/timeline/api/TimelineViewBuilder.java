@@ -33,9 +33,9 @@ public interface TimelineViewBuilder {
     TimelineViewBuilder setDelay(Duration delay);
 
     /**
-     * @param offset The point on the timeline to start retrieving events from.
+     * @param offset The point on the timeline to start retrieving events from inclusive.
      *
-     *               If setOffset is not called, the unix epoch is used as the start point
+     *               If setOffset() is not called, the unix epoch is used as the start point
      */
     TimelineViewBuilder setOffset(Instant offset);
 

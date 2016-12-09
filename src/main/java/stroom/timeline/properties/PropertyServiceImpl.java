@@ -17,6 +17,8 @@ package stroom.timeline.properties;
 
 import java.util.Properties;
 
+//TODO remove, will be provided by client
+@Deprecated
 public class PropertyServiceImpl implements PropertyService{
 
     //TODO need to load these from somewhere

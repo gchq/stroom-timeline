@@ -26,15 +26,19 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * Class for representing a complex multi-part identifier such as wehen you
+ * Class for representing a complex multi-part identifier such as when you
  * have a compound key. If the parts are hierarchical in nature, e.g.
  * BatchNo:IdInBatch then they should be provided to the constructor in the
- * order outer -> inner to ensure correct ordering in the Timeline
+ * order outer -> inner to ensure correct ordering in the Timeline.
+ * Despite the name it will support a single identifier.
+ * Currently supported types are: String, Long, Integer, Double, Float, BigDecimal.
  */
 public class MultiPartIdentifier implements SequentialIdentifierProvider<Object[]> {
 
     private final Object[] values;
-    private final byte[] bValues;
+
+    //hold the byte form to save re-computing it all the time
+    private  byte[] bValues = null;
 
     public MultiPartIdentifier(Object... values) {
         if (values == null || values.length == 0){
@@ -42,7 +46,6 @@ public class MultiPartIdentifier implements SequentialIdentifierProvider<Object[
             throw new IllegalArgumentException(String.format("values %s must contain at least one element", valuesStr));
         }
         this.values = values;
-        this.bValues = buildBytes();
     }
 
     private byte[] buildBytes(){
@@ -58,6 +61,8 @@ public class MultiPartIdentifier implements SequentialIdentifierProvider<Object[
                 chunk = Bytes.toBytes(Integer.class.cast(value));
             } else if (value instanceof Long){
                 chunk = Bytes.toBytes(Long.class.cast(value));
+            } else if (value instanceof Float){
+                chunk = Bytes.toBytes(Float.class.cast(value));
             } else if (value instanceof Double){
                 chunk = Bytes.toBytes(Double.class.cast(value));
             } else if (value instanceof BigDecimal) {
@@ -78,6 +83,9 @@ public class MultiPartIdentifier implements SequentialIdentifierProvider<Object[
 
     @Override
     public byte[] getBytes() {
+        if (bValues == null){
+            bValues = buildBytes();
+        }
         return bValues;
     }
 

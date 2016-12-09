@@ -57,12 +57,39 @@ public class MultiPartIdentifierTest {
     @Test
     public void getValue() throws Exception {
         Object[] values = buildId().getValue();
+        Assert.assertEquals(3, values.length);
         Assert.assertEquals(strVal, values[0]);
         Assert.assertEquals(longVal, values[1]);
         Assert.assertEquals(intVal, values[2]);
     }
 
+    @Test
+    public void getBytes_single() throws Exception {
+        MultiPartIdentifier id = buildId_single();
+
+        byte[] expectedBytes = bStrVal;
+        Assert.assertArrayEquals(expectedBytes, id.getBytes());
+    }
+
+    @Test
+    public void toHumanReadable_single() throws Exception {
+        MultiPartIdentifier id = buildId_single();
+        String expectedStr = strVal;
+        Assert.assertEquals(expectedStr, id.toHumanReadable());
+    }
+
+    @Test
+    public void getValue_single() throws Exception {
+        Object[] values = buildId_single().getValue();
+        Assert.assertEquals(1, values.length);
+        Assert.assertEquals(strVal, values[0]);
+    }
+
     private MultiPartIdentifier buildId(){
         return new MultiPartIdentifier(strVal, longVal, intVal);
+    }
+
+    private MultiPartIdentifier buildId_single(){
+        return new MultiPartIdentifier(strVal);
     }
 }

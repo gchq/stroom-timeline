@@ -17,6 +17,7 @@
 
 package stroom.timeline.api;
 
+import com.google.common.base.Preconditions;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.hbase.HBaseTimelineService;
 
@@ -33,6 +34,8 @@ public class TimelineServiceFactory {
      * @return A new TimelineService
      */
     public static TimelineService getTimelineService(DBConnection dbConnectionn){
+
+        Preconditions.checkNotNull(dbConnectionn);
 
         if (dbConnectionn instanceof HBaseConnection) {
            return new HBaseTimelineService((HBaseConnection)dbConnectionn);

@@ -29,12 +29,11 @@ public class QualifiedCellAdapter {
     private QualifiedCellAdapter() {
     }
 
-    //TODO don't think this will be needed
     public static QualifiedCell getQualifiedCell(Timeline timeline, OrderedEvent orderedEvent){
 
         RowKey rowKey = RowKeyAdapter.getRowKey(timeline, orderedEvent.getEvent());
 
-        byte[] colQualifier = orderedEvent.getSequentialIdentifier();
+        byte[] colQualifier = orderedEvent.getSequentialIdentifierBytes();
 
 
         QualifiedCell qualifiedCell = new QualifiedCell(rowKey, colQualifier, orderedEvent.getContent());

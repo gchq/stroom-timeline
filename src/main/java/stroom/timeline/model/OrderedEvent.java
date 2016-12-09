@@ -8,24 +8,24 @@ import java.time.Instant;
 public class OrderedEvent implements Comparable<OrderedEvent> {
 
     //provides uniqueness in case of a clash on time (which is quite likely)
-    private final SequentialIdentifierProvider sequentialIdentifierProvider;
+    private final SequentialIdentifierProvider sequentialIdentifier;
     private final Event event;
 
 
-    public OrderedEvent(Instant eventTime, byte[] content, SequentialIdentifierProvider sequentialIdentifierProvider) {
+    public OrderedEvent(Instant eventTime, byte[] content, SequentialIdentifierProvider sequentialIdentifier) {
         this.event = new Event(eventTime, content);
-        this.sequentialIdentifierProvider = sequentialIdentifierProvider;
+        this.sequentialIdentifier = sequentialIdentifier;
     }
     public OrderedEvent(Instant eventTime, byte[] content) {
         this(eventTime, content, new UuidIdentifier());
     }
 
-    public byte[] getSequentialIdentifier() {
-        return sequentialIdentifierProvider.getBytes();
+    public byte[] getSequentialIdentifierBytes() {
+        return sequentialIdentifier.getBytes();
     }
 
-    public SequentialIdentifierProvider getSequentialIdentifierProvider() {
-        return sequentialIdentifierProvider;
+    public SequentialIdentifierProvider getSequentialIdentifier() {
+        return sequentialIdentifier;
     }
 
     public Instant getEventTime(){
@@ -44,7 +44,7 @@ public class OrderedEvent implements Comparable<OrderedEvent> {
     public String toString() {
         return "OrderedEvent{" +
                 "event=" + event +
-                ", sequentialIdentifier=" + sequentialIdentifierProvider.toHumanReadable() +
+                ", sequentialIdentifier=" + sequentialIdentifier.toHumanReadable() +
                 '}';
     }
 

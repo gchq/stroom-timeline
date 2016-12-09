@@ -17,6 +17,7 @@
 
 package stroom.timeline.hbase;
 
+import com.google.common.base.Preconditions;
 import stroom.timeline.api.TimelineView;
 import stroom.timeline.api.TimelineViewBuilder;
 import stroom.timeline.model.Timeline;
@@ -30,15 +31,18 @@ public class HBaseTimelineViewBuilder implements TimelineViewBuilder {
     private Instant offset = Instant.EPOCH;
 
     public HBaseTimelineViewBuilder(Timeline timeline) {
+        Preconditions.checkNotNull(timeline);
         this.timeline = timeline;
     }
 
     public HBaseTimelineViewBuilder setDelay(Duration delay) {
+        Preconditions.checkNotNull(delay);
         this.delay = delay;
         return this;
     }
 
     public HBaseTimelineViewBuilder setOffset(Instant offset) {
+        Preconditions.checkNotNull(offset);
         this.offset = offset;
         return this;
     }

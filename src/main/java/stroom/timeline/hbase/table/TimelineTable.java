@@ -156,19 +156,20 @@ public class TimelineTable extends AbstractTable {
         return events;
     }
 
-
-
-
     @Override
     HTableDescriptor getTableDesctptor() {
-        HColumnDescriptor metaFamily = new HColumnDescriptor(COL_FAMILY_META)
-                .setTimeToLive(Math.toIntExact(timeline.getRetention().getSeconds()));
-        HColumnDescriptor contentFamily = new HColumnDescriptor(COL_FAMILY_CONTENT)
-                .setTimeToLive(Math.toIntExact(timeline.getRetention().getSeconds()));
+        HColumnDescriptor metaFamily = new HColumnDescriptor(COL_FAMILY_META);
+        HColumnDescriptor contentFamily = new HColumnDescriptor(COL_FAMILY_CONTENT);
+
+        timeline.getRetention().ifPresent(retention -> {
+            metaFamily.setTimeToLive(Math.toIntExact(retention.getSeconds()));
+            contentFamily.setTimeToLive(Math.toIntExact(retention.getSeconds()));
+        });
 
         HTableDescriptor tableDescriptor = new HTableDescriptor(tableName)
                 .addFamily(metaFamily)
                 .addFamily(contentFamily);
+
         return tableDescriptor;
     }
 

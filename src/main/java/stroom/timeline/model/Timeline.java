@@ -15,18 +15,32 @@
  */
 package stroom.timeline.model;
 
+import com.google.common.base.Preconditions;
+
 import java.time.Duration;
+import java.util.Optional;
 
 public class Timeline {
-    private final int id;
+    //The temporary id until the Timeline is persisted to the TimelineMetaTable
+    private static int DETACHED_OBJECT_ID = -1;
+    private int id;
     private final String name;
     private final Duration retention;
     private final int saltCount;
 
+    public Timeline(final String name, final Duration retention, final int saltCount) {
+        this(DETACHED_OBJECT_ID, name, retention, saltCount);
+    }
+
     public Timeline(final int id, final String name, final Duration retention, final int saltCount) {
+
+        Preconditions.checkArgument(id > 0, "id must be greater than 0");
+        Preconditions.checkArgument(name != null && name.length() > 0, "Name must be at least one character in length");
+        Preconditions.checkArgument(saltCount > 0, "saltCount must be greater than 0");
+
         this.id = id;
         this.name = name;
-        this.retention = retention;
+        this.retention = retention != null ? retention : Duration.ZERO;
         this.saltCount = saltCount;
     }
 
@@ -47,8 +61,8 @@ public class Timeline {
     /**
      * @return The time period values are held in the timeline before being purged
      */
-    public Duration getRetention() {
-        return retention;
+    public Optional<Duration> getRetention() {
+        return retention.equals(Duration.ZERO) ? Optional.empty() : Optional.of(retention);
     }
 
     /**

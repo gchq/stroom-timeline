@@ -21,9 +21,27 @@ import java.time.Duration;
 import java.time.Instant;
 
 public interface TimelineViewBuilder {
+
+    /**
+     * @param delay The delay to set on the TimelineView. A delay of 1 hour
+     *              means you will not be able to retrieve events with an
+     *              event time more recent than now() minus 1 hour.
+     *
+     *              If setDelay() is not called no delay will be imposed and all
+     *              events can be retrieved.
+     */
     TimelineViewBuilder setDelay(Duration delay);
 
+    /**
+     * @param offset The point on the timeline to start retrieving events from.
+     *
+     *               If setOffset is not called, the unix epoch is used as the start point
+     */
     TimelineViewBuilder setOffset(Instant offset);
 
+    /**
+     * Builds the new view
+     * @return A new instance of a view over a timeline.
+     */
     TimelineView build();
 }

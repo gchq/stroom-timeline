@@ -23,7 +23,7 @@ public class Timeline {
     private final Duration retention;
     private final int saltCount;
 
-    public Timeline(final int id, final String name, final Duration delay, final Duration retention, final int saltCount) {
+    public Timeline(final int id, final String name, final Duration retention, final int saltCount) {
         this.id = id;
         this.name = name;
         this.retention = retention;

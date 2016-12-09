@@ -9,12 +9,21 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
+        <phoenix.version>4.5.1-HBase-1.1</phoenix.version>
+        <hbase.version>1.1.0.1</hbase.version>
+        <!-- Old guava version to avoid conflicts with hbase which also uses guava -->
+        <guava.version>14.0</guava.version>
+        <log4j.version>1.2.17</log4j.version>
         <maven.compiler.version>3.5</maven.compiler.version>
         <maven.source.version>2.4</maven.source.version>
         <maven.javadoc.version>2.10.3</maven.javadoc.version>
         <maven.jar.version>2.6</maven.jar.version>
         <java.target.version>1.8</java.target.version>
         <java.source.version>1.8</java.source.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <skip.site.creation>false</skip.site.creation>
+        <skip.javadoc.creation>false</skip.javadoc.creation>
+        <skip.surefire.tests>false</skip.surefire.tests>
     </properties>
 
     <build>
@@ -69,29 +78,34 @@
         <dependency>
             <groupId>org.apache.phoenix</groupId>
             <artifactId>phoenix-core</artifactId>
-            <version>4.5.1-HBase-1.1</version>
+            <version>${phoenix.version}</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.apache.hbase/hbase-client -->
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-client</artifactId>
-            <version>1.1.0.1</version>
+            <version>${hbase.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-testing-util</artifactId>
-            <version>1.1.0.1</version>
+            <version>${hbase.version}</version>
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
 
         <!-- https://mvnrepository.com/artifact/log4j/log4j -->
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
-            <version>1.2.17</version>
+            <version>${log4j.version}</version>
         </dependency>
 
     </dependencies>

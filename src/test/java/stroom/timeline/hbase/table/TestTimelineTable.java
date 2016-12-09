@@ -60,7 +60,7 @@ public class TestTimelineTable extends AbstractTableTest {
     }
 
     private TimelineTable getTimelineTable() {
-        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofSeconds(1), Duration.ofDays(400), 1);
+        Timeline timeline = new Timeline(1, "Timeline1",  Duration.ofDays(400), 1);
 
         return new TimelineTable(timeline, 0, super.hBaseTestUtilConnection, propertyService);
     }
@@ -100,7 +100,7 @@ public class TestTimelineTable extends AbstractTableTest {
 
 //        eventsInOrder.stream().forEach(System.out::println);
 
-        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofSeconds(1), Duration.ofDays(400), 1);
+        Timeline timeline = new Timeline(1, "Timeline1", Duration.ofDays(400), 1);
 
         TimelineTable timelineTable = new  TimelineTable(timeline, 0, super.hBaseTestUtilConnection, propertyService);
 

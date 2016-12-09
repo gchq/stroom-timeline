@@ -20,11 +20,18 @@ package stroom.timeline.api;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.hbase.HBaseTimelineService;
 
+/**
+ * Entry point class for interacting with timelines
+ */
 public class TimelineServiceFactory {
 
     public TimelineServiceFactory() {
     }
 
+    /**
+     * @param dbConnectionn A provider for the connection object that connects to the underlying database
+     * @return A new TimelineService
+     */
     public static TimelineService getTimelineService(DBConnection dbConnectionn){
 
         if (dbConnectionn instanceof HBaseConnection) {

@@ -21,6 +21,7 @@ import stroom.timeline.api.TimelineViewBuilder;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -30,6 +31,8 @@ public class HBaseTimelineService implements TimelineService {
 
 
     final HBaseConnection hBaseConnection;
+
+    private static final Timeline HARD_CODED_TIMELINE = new Timeline(0,"HardCodedTimeLine", Duration.ofDays(30), 1);
 
     public HBaseTimelineService(HBaseConnection hBaseConnection) {
         this.hBaseConnection = hBaseConnection;

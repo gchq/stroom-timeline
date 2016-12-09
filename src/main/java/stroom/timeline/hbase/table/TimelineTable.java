@@ -33,6 +33,7 @@ import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,24 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * DAO for the Timeline HBase table
+ *
+ * This is how the data is stored, assuming a
+ * contiguous data set
+ *
+ * salt|---------------time----------------->
+ * 0   | ###         ###         ###
+ * 1   |    ###         ###         ###
+ * 2   |       ###         ###         ###
+ * 3   |          ###         ###         ###
+ *
+ *
+ *
+ *
+ *
+ *
+ */
 public class TimelineTable extends AbstractTable {
 
 
@@ -109,16 +128,28 @@ public class TimelineTable extends AbstractTable {
 
         int scanMaxResults = rowCount / timelineView.getTimeline().getSaltCount();
 
+        //The time that all delay clalculations are based off for consistentcy
+        Instant now = Instant.now();
+
         //one scan per salt value
         List<Event> events = RowKeyAdapter.getAllRowKeys(timelineView)
                 .parallelStream()
                 .map(startKey -> {
-                    //TODO need to set a stop row so we get one contiguous chunk of rows for a
-                    //time bucket and not jump onto another time bucket.
-                    //for now as the salt is hard coded it doesn't matter
                     Scan scan = new Scan(startKey.getRowKeyBytes())
                             .addFamily(COL_FAMILY_CONTENT)
                             .setMaxResultSize(scanMaxResults);
+
+
+                    //TODO need to set a stop row so we get one contiguous chunk of rows for a
+                    //time bucket and not jump onto another time bucket.
+                    //for now as the salt is hard coded it doesn't matter
+                    //This current ocde is too simplistic as it only deals with the delay and not the
+                    //salting
+                    if (!timelineView.getDelay().equals(Duration.ZERO)){
+                        Instant notBeforeTime = now.minus(timelineView.getDelay());
+                        RowKey stopKey = RowKeyAdapter.getRowKey(startKey.getSaltBytes(), notBeforeTime);
+                        scan.setStopRow(stopKey.getRowKeyBytes());
+                    }
 
                     List<Event> eventsForSalt;
                     try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
@@ -231,7 +262,6 @@ public class TimelineTable extends AbstractTable {
         public byte[] getSalt() {
             return bSalt;
         }
-
 
         @Override
         public int compareTo(EventsBucket other) {

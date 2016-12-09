@@ -45,6 +45,11 @@ public class RowKeyAdapter {
         return rowKeys;
     }
 
+    public static RowKey getRowKey(byte[] bSalt, Instant time) {
+        byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
+        return new RowKey(bSalt, bEventTime);
+    }
+
     public static RowKey getRowKey(short salt, Instant time) {
         byte[] bSalt = Bytes.toBytes(salt);
         byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());

@@ -18,9 +18,12 @@ package stroom.timeline.hbase;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import stroom.timeline.api.DBConnection;
+import stroom.timeline.properties.PropertyService;
 
 public interface HBaseConnection extends DBConnection<Connection> {
     Connection getConnection();
 
     Admin getAdmin();
+
+    PropertyService getPropertyService();
 }

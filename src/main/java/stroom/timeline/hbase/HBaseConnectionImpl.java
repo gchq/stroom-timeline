@@ -15,6 +15,7 @@
  */
 package stroom.timeline.hbase;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Admin;
@@ -29,8 +30,11 @@ public class HBaseConnectionImpl implements HBaseConnection {
     Connection connection;
 
     public HBaseConnectionImpl(PropertyService propertyService) {
+        Preconditions.checkNotNull(propertyService);
+
         this.propertyService = propertyService;
 
+        //eagerly create the connection
         createConnection();
 
     }
@@ -50,6 +54,11 @@ public class HBaseConnectionImpl implements HBaseConnection {
             throw new RuntimeException("Error getting admin for connection", e);
         }
         return admin;
+    }
+
+    @Override
+    public PropertyService getPropertyService() {
+        return propertyService;
     }
 
 

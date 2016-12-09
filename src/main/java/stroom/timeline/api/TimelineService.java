@@ -15,7 +15,7 @@
  */
 package stroom.timeline.api;
 
-import stroom.timeline.model.Event;
+import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
 
 import java.util.Collection;
@@ -38,14 +38,14 @@ public interface TimelineService {
      * @param timeline
      * @param event
      */
-    void putEvent(Timeline timeline, Event event);
+    void putEvent(Timeline timeline, OrderedEvent event);
 
     /**
      * Put a collection of events into the specified timeline. Events can be added in any order.
      * @param timeline
      * @param events
      */
-    void putEvents(Timeline timeline, Collection<Event> events);
+    void putEvents(Timeline timeline, Collection<OrderedEvent> events);
 
     /**
      * @param timeline The Timeline instance to create the view on

@@ -18,6 +18,7 @@ package stroom.timeline.hbase;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
+import stroom.timeline.properties.PropertyService;
 
 import java.io.IOException;
 
@@ -41,6 +42,11 @@ public class HBaseTestUtilConnection implements HBaseConnection {
         } catch (IOException e) {
             throw new RuntimeException("Error getting HBaseAdmin", e);
         }
+    }
+
+    @Override
+    public PropertyService getPropertyService() {
+        throw new UnsupportedOperationException("Method not supported in this implementation");
     }
 
     public void setup() {

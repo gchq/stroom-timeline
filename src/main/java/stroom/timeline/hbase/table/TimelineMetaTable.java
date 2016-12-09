@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.hbase.HBaseConnection;
-import stroom.timeline.properties.PropertyService;
 
 public class TimelineMetaTable extends AbstractTable {
 
@@ -28,15 +27,15 @@ public class TimelineMetaTable extends AbstractTable {
     private final String SHORT_NAME = "tm";
     private static final String COL_FAMILY_DATA = "d";
     private final HBaseConnection hBaseConnection;
-    private final PropertyService propertyService;
     private final byte[] bShortName = Bytes.toBytes(SHORT_NAME);
     private final TableName tableName = TableName.valueOf(bShortName);
 
-    public TimelineMetaTable(HBaseConnection hBaseConnection, PropertyService propertyService) {
-        super(hBaseConnection, propertyService);
+    public TimelineMetaTable(HBaseConnection hBaseConnection) {
+        super(hBaseConnection);
         this.hBaseConnection = hBaseConnection;
-        this.propertyService = propertyService;
     }
+
+    //TODO have the rowkey as <id><name> which makes it easier to lookup by name
 
     @Override
     HTableDescriptor getTableDesctptor() {

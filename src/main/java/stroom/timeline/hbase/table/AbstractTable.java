@@ -15,23 +15,23 @@
  */
 package stroom.timeline.hbase.table;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Table;
 import stroom.timeline.hbase.HBaseConnection;
-import stroom.timeline.properties.PropertyService;
 
 import java.io.IOException;
 
 public abstract class AbstractTable {
 
     private final HBaseConnection hBaseConnection;
-    private final PropertyService propertyService;
 
-    public AbstractTable(HBaseConnection hBaseConnection, PropertyService propertyService) {
+    public AbstractTable(HBaseConnection hBaseConnection) {
+        Preconditions.checkNotNull(hBaseConnection);
+
         this.hBaseConnection = hBaseConnection;
-        this.propertyService = propertyService;
     }
 
     void initialiseTable(){
@@ -45,6 +45,7 @@ public abstract class AbstractTable {
             throw new RuntimeException("Error testing existence of table " + getLongName(), e);
         }
 
+        //Auto-create table on first use if it isn't there
         if (!doesTableExist) {
             try {
                 admin.createTable(tableDescriptor);

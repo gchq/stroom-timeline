@@ -71,4 +71,32 @@ public class Timeline {
     public int getSaltCount() {
         return saltCount;
     }
+
+    public PersistedState getPersistedState() {
+        return id == DETACHED_OBJECT_ID ? PersistedState.DETACHED : PersistedState.PERSISTED;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Timeline timeline = (Timeline) o;
+
+        if (id != timeline.id) return false;
+        if (saltCount != timeline.saltCount) return false;
+        if (!name.equals(timeline.name)) return false;
+        return retention.equals(timeline.retention);
+    }
+
+    @Override
+    public int hashCode() {
+        return id;
+    }
+
+    public enum PersistedState{
+        DETACHED,
+        PERSISTED
+    }
+
 }

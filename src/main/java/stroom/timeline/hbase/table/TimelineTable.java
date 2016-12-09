@@ -15,12 +15,14 @@
  */
 package stroom.timeline.hbase.table;
 
+import com.google.common.base.Preconditions;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import stroom.timeline.api.TimelineView;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.hbase.adapters.QualifiedCellAdapter;
 import stroom.timeline.hbase.adapters.RowKeyAdapter;
@@ -29,8 +31,6 @@ import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.api.TimelineView;
-import stroom.timeline.properties.PropertyService;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -51,9 +51,7 @@ public class TimelineTable extends AbstractTable {
     private static final byte[] COL_FAMILY_META = Bytes.toBytes("m");
     private static final byte[] COL_ROW_CHANGE_NUMBER = Bytes.toBytes("RCN");
     private final Timeline timeline;
-    private final int timelineCode;
     private final HBaseConnection hBaseConnection;
-    private final PropertyService propertyService;
     private final String shortName;
     private final byte[] bShortName;
     private final TableName tableName;
@@ -62,23 +60,25 @@ public class TimelineTable extends AbstractTable {
     //hopefully this will be reasonable enough as most data will come in within a few minutes of the event time
 
 
-    public TimelineTable(Timeline timeline, int timelineCode, HBaseConnection hBaseConnection, PropertyService propertyService) {
-        super(hBaseConnection, propertyService);
+    public TimelineTable(Timeline timeline, HBaseConnection hBaseConnection) {
+        super(hBaseConnection);
+
+        Preconditions.checkNotNull(timeline);
+
         this.timeline = timeline;
-        this.timelineCode = timelineCode;
         this.hBaseConnection = hBaseConnection;
-        this.propertyService = propertyService;
-        shortName = SHORT_NAME_PREFIX + timelineCode;
+        shortName = SHORT_NAME_PREFIX + timeline.getId();
         bShortName = Bytes.toBytes(shortName);
         tableName = TableName.valueOf(bShortName);
         initialiseTable();
     }
 
 
-    public void putEvents(Collection<OrderedEvent> orderedEvents) throws InterruptedException {
+    public void putEvents(Collection<OrderedEvent> orderedEvents)  {
 
         try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
             orderedEvents.stream()
+                    .parallel()
                     .map(event -> QualifiedCellAdapter.getQualifiedCell(timeline,event))
                     .flatMap(qualifiedCellToMutationsMapper)
                     .forEach(mutation -> {

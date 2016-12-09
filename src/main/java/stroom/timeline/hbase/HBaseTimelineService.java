@@ -18,7 +18,9 @@ package stroom.timeline.hbase;
 
 import stroom.timeline.api.TimelineService;
 import stroom.timeline.api.TimelineViewBuilder;
-import stroom.timeline.model.Event;
+import stroom.timeline.hbase.table.TimelineMetaTable;
+import stroom.timeline.hbase.table.TimelineTable;
+import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
@@ -26,46 +28,57 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class HBaseTimelineService implements TimelineService {
 
-
-    final HBaseConnection hBaseConnection;
-
+    //TODO just temporary until the timelineMeta table is implemented
     private static final Timeline HARD_CODED_TIMELINE = new Timeline(0,"HardCodedTimeLine", Duration.ofDays(30), 1);
+
+    private final HBaseConnection hBaseConnection;
+
+    private final TimelineMetaTable timelineMetaTable;
+
+    //One TimelineTable per TimeLine in the TimelineMeta table so cache them all here
+    private final ConcurrentMap<Timeline, TimelineTable> timelineTablesMap = new ConcurrentHashMap<>();
 
     public HBaseTimelineService(HBaseConnection hBaseConnection) {
         this.hBaseConnection = hBaseConnection;
+        this.timelineMetaTable = new TimelineMetaTable(hBaseConnection);
     }
 
     @Override
     public Optional<Timeline> fetchTimeline(String name) {
-        return null;
+        //TODO replace with a table lookup
+        return Optional.of(HARD_CODED_TIMELINE);
     }
 
     @Override
     public Optional<Timeline> fetchTimeline(int id) {
-        return null;
+        //TODO replace with a table lookup
+        return Optional.of(HARD_CODED_TIMELINE);
     }
 
     @Override
     public List<Timeline> fetchAllTimelines() {
-        return null;
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
     public Timeline saveTimeline(Timeline timeline) {
-        return null;
+        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     @Override
-    public void putEvent(Timeline timeline, Event event) {
+    public void putEvent(Timeline timeline, OrderedEvent event) {
         putEvents(timeline, Arrays.asList(event));
     }
 
     @Override
-    public void putEvents(Timeline timeline, Collection<Event> events) {
-
+    public void putEvents(Timeline timeline, Collection<OrderedEvent> events) {
+        TimelineTable timelineTable = getTimelineTable(timeline);
+        timelineTable.putEvents(events);
     }
 
     @Override
@@ -73,5 +86,12 @@ public class HBaseTimelineService implements TimelineService {
         return new HBaseTimelineViewBuilder(timeline);
     }
 
+    private TimelineTable getTimelineTable(Timeline timeline) {
+        if (timeline.getPersistedState().equals(Timeline.PersistedState.DETACHED)) {
+            throw new RuntimeException(String.format("Timeline %s is not yet persisted to the TimelineMeta table", timeline.toString()));
+        }
+
+        return timelineTablesMap.computeIfAbsent(timeline, (key) -> new TimelineTable(key, hBaseConnection));
+    }
 
 }

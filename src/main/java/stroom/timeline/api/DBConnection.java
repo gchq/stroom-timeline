@@ -15,12 +15,9 @@
  *
  */
 
-package stroom.timeline.service;
+package stroom.timeline.api;
 
-import stroom.timeline.model.TimelineView;
+public interface DBConnection<T> {
 
-@Deprecated
-public interface TimelineViewFactory {
-
-    TimelineView getTimelineView(final String name);
+    T getConnection();
 }

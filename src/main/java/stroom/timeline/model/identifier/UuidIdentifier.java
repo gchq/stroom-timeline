@@ -15,7 +15,7 @@
  *
  */
 
-package stroom.timeline.model.sequence;/*
+package stroom.timeline.model.identifier;/*
  * Copyright 2016 Crown Copyright
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,11 +40,11 @@ import java.util.UUID;
  * sequential identifier cannot be provided.  As UUIDs have no order this means events with
  * the same time stamp will be stored in a random order. This may be an acceptable limitation
  */
-public class UuidIdentifierProvider implements SequentialIdentifierProvider<UUID> {
+public class UuidIdentifier implements SequentialIdentifierProvider<UUID> {
 
     private final UUID uuid;
 
-    public UuidIdentifierProvider() {
+    public UuidIdentifier() {
         uuid = UUID.randomUUID();
     }
 

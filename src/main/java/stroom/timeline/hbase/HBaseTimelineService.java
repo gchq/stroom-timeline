@@ -12,30 +12,28 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package stroom.timeline.service;
+package stroom.timeline.hbase;
 
+import stroom.timeline.api.TimelineService;
+import stroom.timeline.api.TimelineViewBuilder;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.model.TimelineView;
 
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
-public class TimelineServiceImpl  implements TimelineService {
-//    private final String longName;
-//    private final String shortName;
-//
-//
-//    public TimelineServiceImpl(String longName, String shortName) {
-//        this.longName = longName;
-//        this.shortName = shortName;
-//
-//    }
+public class HBaseTimelineService implements TimelineService {
+
+
+    final HBaseConnection hBaseConnection;
+
+    public HBaseTimelineService(HBaseConnection hBaseConnection) {
+        this.hBaseConnection = hBaseConnection;
+    }
 
     @Override
     public Optional<Timeline> fetchTimeline(String name) {
@@ -68,23 +66,9 @@ public class TimelineServiceImpl  implements TimelineService {
     }
 
     @Override
-    public List<Event> take(TimelineView timelineView, int takeCount) {
-        return null;
+    public TimelineViewBuilder getTimelineViewBuilder(Timeline timeline) {
+        return new HBaseTimelineViewBuilder(timeline);
     }
 
-    @Override
-    public List<Event> poll(TimelineView timelineView, int takeCount) {
-        return null;
-    }
-
-    @Override
-    public Stream<Event> stream(TimelineView timelineView) {
-        return null;
-    }
-
-    @Override
-    public List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset) {
-        return null;
-    }
 
 }

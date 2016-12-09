@@ -14,12 +14,19 @@
  * limitations under the License.
  *
  */
-package stroom.timeline.model;
+
+package stroom.timeline.hbase;
+
+import stroom.timeline.api.TimelineView;
+import stroom.timeline.model.Event;
+import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Stream;
 
-public class TimelineView {
+public class HBaseTimelineView implements TimelineView {
 
     private final Timeline timeline;
     private final Duration delay;
@@ -30,49 +37,48 @@ public class TimelineView {
     //between the call to take/poll and getting the results.
 
 
-    public static TimelineViewBuilder builder(Timeline timeline) {
-        return new TimelineViewBuilder(timeline);
+    public static HBaseTimelineViewBuilder builder(Timeline timeline) {
+        return new HBaseTimelineViewBuilder(timeline);
     }
 
+    @Override
     public Timeline getTimeline() {
         return timeline;
     }
 
+    @Override
     public Duration getDelay() {
         return delay;
     }
 
+    @Override
     public Instant getOffset() {
         return offset;
     }
 
-    private TimelineView(Timeline timeline, Duration delay, Instant offset) {
+    HBaseTimelineView(Timeline timeline, Duration delay, Instant offset) {
         this.timeline = timeline;
         this.delay = delay;
         this.offset = offset;
     }
 
-    public static class TimelineViewBuilder {
-        private Timeline timeline;
-        private Duration delay = Duration.ZERO;
-        private Instant offset = Instant.EPOCH;
+    @Override
+    public List<Event> take(TimelineView timelineView, int takeCount) {
+        return null;
+    }
 
-        public TimelineViewBuilder(Timeline timeline) {
-            this.timeline = timeline;
-        }
+    @Override
+    public List<Event> poll(TimelineView timelineView, int takeCount) {
+        return null;
+    }
 
-        public TimelineViewBuilder setDelay(Duration delay) {
-            this.delay = delay;
-            return this;
-        }
+    @Override
+    public Stream<Event> stream(TimelineView timelineView) {
+        return null;
+    }
 
-        public TimelineViewBuilder setOffset(Instant offset) {
-            this.offset = offset;
-            return this;
-        }
-
-        public TimelineView build() {
-            return new TimelineView(timeline, delay, offset);
-        }
+    @Override
+    public List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset) {
+        return null;
     }
 }

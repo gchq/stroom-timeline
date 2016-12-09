@@ -15,16 +15,15 @@
  *
  */
 
-package stroom.timeline.service;
+package stroom.timeline.api;
 
-import stroom.timeline.model.TimelineView;
+import java.time.Duration;
+import java.time.Instant;
 
-@Deprecated
-public class TimelineViewFactoryImpl implements TimelineViewFactory {
+public interface TimelineViewBuilder {
+    TimelineViewBuilder setDelay(Duration delay);
 
+    TimelineViewBuilder setOffset(Instant offset);
 
-    @Override
-    public TimelineView getTimelineView(String name) {
-        return null;
-    }
+    TimelineView build();
 }

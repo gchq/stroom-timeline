@@ -14,11 +14,11 @@
  * limitations under the License.
  *
  */
-package stroom.timeline.model.sequence;
+package stroom.timeline.model.identifier;
 
 /**
- * Used to provide an identifier that is globally unique and also
- * defines an order of events in cases where the event time is not
+ * Used to provide an identifier that is globally unique within a timeline
+ * and also defines an order of events in cases where the event time is not
  * sufficiently granular to do this.
  */
 public interface SequentialIdentifierProvider<T> {
@@ -38,5 +38,9 @@ public interface SequentialIdentifierProvider<T> {
      */
     String toHumanReadable();
 
+    /**
+     * @return The actual identifier object, which could be anyting from tha boxed primitive
+     * to a complex structure
+     */
     T getValue();
 }

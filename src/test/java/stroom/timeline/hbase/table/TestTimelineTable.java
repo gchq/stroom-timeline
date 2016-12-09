@@ -20,8 +20,10 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
 import stroom.timeline.model.*;
-import stroom.timeline.model.sequence.LongSequentialIdentifierProvider;
+import stroom.timeline.model.identifier.LongSequentialIdentifier;
 import stroom.timeline.properties.MockPropertyService;
+import stroom.timeline.api.TimelineView;
+import stroom.timeline.hbase.HBaseTimelineView;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -82,7 +84,7 @@ public class TestTimelineTable extends AbstractTableTest {
                 .map(day -> {
                     Instant eventTime = now.minusDays(day).toInstant();
                     byte[] content = Bytes.toBytes(counter.incrementAndGet());
-                    LongSequentialIdentifierProvider idProvider = new LongSequentialIdentifierProvider(counter.get());
+                    LongSequentialIdentifier idProvider = new LongSequentialIdentifier(counter.get());
                     return new OrderedEvent(eventTime, content, idProvider);
                 })
                 .collect(Collectors.toList());
@@ -102,7 +104,7 @@ public class TestTimelineTable extends AbstractTableTest {
 
         TimelineTable timelineTable = new  TimelineTable(timeline, 0, super.hBaseTestUtilConnection, propertyService);
 
-        TimelineView timelineView = TimelineView.builder(timeline).build();
+        TimelineView timelineView = HBaseTimelineView.builder(timeline).build();
 
         timelineTable.putEvents(randomEvents);
 

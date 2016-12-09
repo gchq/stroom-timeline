@@ -15,30 +15,23 @@
  *
  */
 
-package stroom.timeline.model.sequence;
+package stroom.timeline.api;
 
-import org.apache.hadoop.hbase.util.Bytes;
+import stroom.timeline.hbase.HBaseConnection;
+import stroom.timeline.hbase.HBaseTimelineService;
 
-public class LongSequentialIdentifierProvider implements SequentialIdentifierProvider {
+public class TimelineServiceFactory {
 
-    private final long id;
-
-    public LongSequentialIdentifierProvider(long id) {
-        this.id = id;
+    public TimelineServiceFactory() {
     }
 
-    @Override
-    public byte[] getBytes() {
-        return Bytes.toBytes(id);
-    }
+    public static TimelineService getTimelineService(DBConnection dbConnectionn){
 
-    @Override
-    public String toHumanReadable() {
-        return Long.toString(id);
-    }
-
-    @Override
-    public Long getValue() {
-        return id;
+        if (dbConnectionn instanceof HBaseConnection) {
+           return new HBaseTimelineService((HBaseConnection)dbConnectionn);
+        } else {
+            throw new IllegalArgumentException(String.format("Provided DBConnection class %s, is not supported",
+                    dbConnectionn.getClass().getName()));
+        }
     }
 }

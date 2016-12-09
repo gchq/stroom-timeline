@@ -12,15 +12,33 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package stroom.timeline.hbase;
 
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import stroom.timeline.api.DBConnection;
+package stroom.timeline.model.identifier;
 
-public interface HBaseConnection extends DBConnection<Connection> {
-    Connection getConnection();
+import org.apache.hadoop.hbase.util.Bytes;
 
-    Admin getAdmin();
+public class LongSequentialIdentifier implements SequentialIdentifierProvider {
+
+    private final long id;
+
+    public LongSequentialIdentifier(long id) {
+        this.id = id;
+    }
+
+    @Override
+    public byte[] getBytes() {
+        return Bytes.toBytes(id);
+    }
+
+    @Override
+    public String toHumanReadable() {
+        return Long.toString(id);
+    }
+
+    @Override
+    public Long getValue() {
+        return id;
+    }
 }

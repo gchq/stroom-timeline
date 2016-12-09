@@ -20,7 +20,7 @@ import stroom.timeline.hbase.Salt;
 import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.model.TimelineView;
+import stroom.timeline.api.TimelineView;
 
 import java.time.Instant;
 import java.util.ArrayList;

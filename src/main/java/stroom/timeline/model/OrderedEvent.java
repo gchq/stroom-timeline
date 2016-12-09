@@ -1,7 +1,7 @@
 package stroom.timeline.model;
 
-import stroom.timeline.model.sequence.SequentialIdentifierProvider;
-import stroom.timeline.model.sequence.UuidIdentifierProvider;
+import stroom.timeline.model.identifier.SequentialIdentifierProvider;
+import stroom.timeline.model.identifier.UuidIdentifier;
 
 import java.time.Instant;
 
@@ -17,7 +17,7 @@ public class OrderedEvent implements Comparable<OrderedEvent> {
         this.sequentialIdentifierProvider = sequentialIdentifierProvider;
     }
     public OrderedEvent(Instant eventTime, byte[] content) {
-        this(eventTime, content, new UuidIdentifierProvider());
+        this(eventTime, content, new UuidIdentifier());
     }
 
     public byte[] getSequentialIdentifier() {

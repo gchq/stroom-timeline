@@ -29,7 +29,7 @@ import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.model.TimelineView;
+import stroom.timeline.api.TimelineView;
 import stroom.timeline.properties.PropertyService;
 
 import java.io.IOException;

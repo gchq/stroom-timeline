@@ -13,17 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package stroom.timeline.service;
+package stroom.timeline.api;
 
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
-import stroom.timeline.model.TimelineView;
 
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 public interface TimelineService {
 
@@ -50,18 +47,10 @@ public interface TimelineService {
      */
     void putEvents(Timeline timeline, Collection<Event> events);
 
-    //TODO should the builder for the TimelineView be in here?
-
-    //TODO should take/poll/stream/takeRange/etc be on the TimelineView as opposed to here
-    //as that will probably hold some form of internal queue with the data in it
-    List<Event> take(TimelineView timelineView, int takeCount);
-    List<Event> poll(TimelineView timelineView, int takeCount);
-
     /**
-     * Return an infinite stream of ordered events, will block if no events are available
+     * @param timeline The Timeline instance to create the view on
+     * @return A builder object for creating a new @TimelineView instance
      */
-    Stream<Event> stream(TimelineView timelineView);
-
-    List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset);
+    TimelineViewBuilder getTimelineViewBuilder(Timeline timeline);
 
 }

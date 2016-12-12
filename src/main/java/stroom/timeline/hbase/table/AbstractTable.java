@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.client.Table;
 import stroom.timeline.hbase.HBaseConnection;
 
 import java.io.IOException;
+import java.util.Optional;
 
 public abstract class AbstractTable {
 
@@ -48,7 +49,12 @@ public abstract class AbstractTable {
         //Auto-create table on first use if it isn't there
         if (!doesTableExist) {
             try {
+                Optional<byte[][]> splitKeys = getRegionSplitKeys();
+                if (splitKeys.isPresent()){
+                    admin.createTable(tableDescriptor, splitKeys.get());
+                }
                 admin.createTable(tableDescriptor);
+
             } catch (IOException e) {
                 throw new RuntimeException("Error creating table " + getLongName(), e);
             }
@@ -61,10 +67,35 @@ public abstract class AbstractTable {
         return hBaseConnection.getConnection().getTable(getTableName());
     }
 
+    /**
+     * @return A HTableDescriptor that can be used to create the table
+     */
     abstract HTableDescriptor getTableDesctptor();
+
+    /**
+     * @return If the table should be pre-split into regions then this method
+     * should return an array of row key split keys. The size of the array should
+     * be one less than the desired number of regions. i.e. the first split key in the
+     * array is the start key for the second region.
+     *
+     * If the table does not need to be pre-split then return Optional.empty()
+     */
+    abstract Optional<byte[][]> getRegionSplitKeys();
+
+    /**
+     * @return The full human readable name of the table. This name is not used in HBase
+     * but can be used in any logging for clarity.
+     */
     abstract String getLongName();
+
+    /**
+     * @return The abbreviated name of the table that is the actual name of the table used
+     * by hbase. The short name should only be a few chars in length
+     */
     abstract String getShortName();
+
     abstract byte[] getShortNameBytes();
+
     abstract TableName getTableName();
 
 }

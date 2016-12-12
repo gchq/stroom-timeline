@@ -21,6 +21,8 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.hbase.HBaseConnection;
 
+import java.util.Optional;
+
 public class TimelineMetaTable extends AbstractTable {
 
     private final String LONG_NAME = "MataData";
@@ -44,6 +46,11 @@ public class TimelineMetaTable extends AbstractTable {
         HTableDescriptor tableDescriptor = new HTableDescriptor(tableName)
                 .addFamily(dataFamily);
         return tableDescriptor;
+    }
+
+    @Override
+    Optional<byte[][]> getRegionSplitKeys() {
+        return Optional.empty();
     }
 
 

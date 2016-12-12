@@ -15,8 +15,6 @@
  */
 package stroom.timeline.hbase.structure;
 
-import org.apache.hadoop.hbase.util.Bytes;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -33,11 +31,6 @@ public class RowKey {
     public static int EVENT_TIME_LENGTH = 8;
     public static int ROW_KEY_LENGTH = SALT_LENGTH + EVENT_TIME_LENGTH;
     private final byte[] bRowKey;
-
-//    public RowKey(short salt, long eventTime) {
-//        byte[] key = new byte[ROW_KEY_LENGTH];
-//        this.bRowKey = ByteBuffer.wrap(key).put(Bytes.toBytes(salt)).put(Bytes.toBytes(eventTime)).array();
-//    }
 
     public RowKey(byte[] bRowKey){
         this.bRowKey = bRowKey;

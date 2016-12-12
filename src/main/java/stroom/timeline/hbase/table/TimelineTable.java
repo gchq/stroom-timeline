@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import stroom.timeline.api.TimelineView;
 import stroom.timeline.hbase.HBaseConnection;
@@ -35,9 +36,7 @@ import stroom.timeline.model.Timeline;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -60,6 +59,10 @@ import java.util.stream.StreamSupport;
  * Instead time ranges have a static salt value so that we can grab a range
  * from each salt value and then just sort the small number of batches by their
  * salt value.
+ *
+ * The aim is for each set of salt values to reside in its own region to spread
+ * the load across region servers. This does mean a scan over a time range means
+ * issuing multiple scans (one for each salt) and then assembling the data on receipt.
  */
 public class TimelineTable extends AbstractTable {
 
@@ -142,7 +145,7 @@ public class TimelineTable extends AbstractTable {
                     //TODO need to set a stop row so we get one contiguous chunk of rows for a
                     //time bucket and not jump onto another time bucket.
                     //for now as the salt is hard coded it doesn't matter
-                    //This current ocde is too simplistic as it only deals with the delay and not the
+                    //This current code is too simplistic as it only deals with the delay and not the
                     //salting
                     if (!timelineView.getDelay().equals(Duration.ZERO)){
                         Instant notBeforeTime = now.minus(timelineView.getDelay());
@@ -189,7 +192,11 @@ public class TimelineTable extends AbstractTable {
     @Override
     HTableDescriptor getTableDesctptor() {
         HColumnDescriptor metaFamily = new HColumnDescriptor(COL_FAMILY_META);
-        HColumnDescriptor contentFamily = new HColumnDescriptor(COL_FAMILY_CONTENT);
+
+        //compress the content family as each cell value can be quite large
+        //and should compress well
+        HColumnDescriptor contentFamily = new HColumnDescriptor(COL_FAMILY_CONTENT)
+                .setCompressionType(Compression.Algorithm.SNAPPY);
 
         timeline.getRetention().ifPresent(retention -> {
             metaFamily.setTimeToLive(Math.toIntExact(retention.getSeconds()));
@@ -201,6 +208,24 @@ public class TimelineTable extends AbstractTable {
                 .addFamily(contentFamily);
 
         return tableDescriptor;
+    }
+
+    @Override
+    Optional<byte[][]> getRegionSplitKeys() {
+        short[] salts = timeline.getSalt().getAllSaltValues();
+        if (salts.length > 1) {
+            //we want the salt values that HBase will be the split points so ignore the
+            //first salt value, i.e. 4 salts = 3 split points
+            short[] splitKeySalts = Arrays.copyOfRange(salts, 1, salts.length);
+            byte[][] splitKeys = new byte[splitKeySalts.length][];
+            for (int i = 0; i< splitKeySalts.length; i++) {
+               splitKeys[i] = Bytes.toBytes(splitKeySalts[i]);
+            }
+            return Optional.of(splitKeys);
+        } else {
+            //only one salt so no point splitting regions
+            return Optional.empty();
+        }
     }
 
     @Override

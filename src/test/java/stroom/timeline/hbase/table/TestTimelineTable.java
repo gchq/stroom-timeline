@@ -100,7 +100,8 @@ public class TestTimelineTable extends AbstractTableTest {
 
 //        eventsInOrder.stream().forEach(System.out::println);
 
-        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400)).assignId(1);
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400), 4, Duration.ofMillis(250))
+                .assignId(1);
 
         TimelineTable timelineTable = new TimelineTable(timeline, super.hBaseTestUtilConnection);
 
@@ -109,7 +110,7 @@ public class TestTimelineTable extends AbstractTableTest {
         timelineTable.putEvents(randomEvents);
 
         //fetch all events from the table and compare to a sorted list of the input events
-        List<Event> eventsFromFetch = timelineTable.fetchEvents(timelineView, 500);
+        List<Event> eventsFromFetch = timelineTable.fetchEvents(timelineView, 5000);
 
         Assert.assertEquals(eventCount, eventsInOrder.size());
         Assert.assertEquals(eventCount, eventsFromFetch.size());

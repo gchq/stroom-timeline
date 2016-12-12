@@ -15,6 +15,8 @@
  */
 package stroom.timeline.hbase.structure;
 
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -53,4 +55,10 @@ public class RowKey {
         return Arrays.copyOfRange(bRowKey, SALT_LENGTH,ROW_KEY_LENGTH);
     }
 
+    @Override
+    public String toString() {
+        return "RowKey{" +
+                "bRowKey=" + Bytes.toString(bRowKey) + "(hex=" + Bytes.toHex(bRowKey) + ")" +
+                '}';
+    }
 }

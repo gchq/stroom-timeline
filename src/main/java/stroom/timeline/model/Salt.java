@@ -19,13 +19,18 @@
 package stroom.timeline.model;
 
 import com.google.common.base.Preconditions;
+import org.apache.log4j.Logger;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Salt {
+
+
+    private static final Logger logger = Logger.getLogger(Salt.class);
 
     private final int saltCount;
     private final short[] allSaltValues;
@@ -72,9 +77,12 @@ public class Salt {
      * @return
      */
     public  long getTimeBucketNo(final Instant time) {
-        Preconditions.checkArgument(saltCount > 1, "No concept of timeBucketNo for a single salt value");
-
-        return time.toEpochMilli() / saltRangeDuration.toMillis();
+        if (saltCount > 1) {
+            return time.toEpochMilli() / saltRangeDuration.toMillis();
+        } else {
+            //timeBucketNo has no real meaning with one salt value as we have one infinite timebucket
+            return 0L;
+        }
     }
 
     private short[] buildAllSalts() {
@@ -154,5 +162,14 @@ public class Salt {
         int result = saltCount;
         result = 31 * result + saltRangeDuration.hashCode();
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Salt{" +
+                "saltCount=" + saltCount +
+                ", allSaltValues=" + Arrays.toString(allSaltValues) +
+                ", saltRangeDuration=" + saltRangeDuration +
+                '}';
     }
 }

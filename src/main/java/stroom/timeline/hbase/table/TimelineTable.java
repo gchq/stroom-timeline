@@ -164,7 +164,7 @@ public class TimelineTable extends AbstractTable {
                         scan.setStopRow(stopKey.getRowKeyBytes());
                     }
 
-                    final List<Event> eventsForSalt;
+                    final Map<Long, List<Event>> eventsForSalt;
                     try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
                         ResultScanner resultScanner = table.getScanner(scan);
                         eventsForSalt = StreamSupport.stream(resultScanner.spliterator(),false)
@@ -175,28 +175,33 @@ public class TimelineTable extends AbstractTable {
                                     //to a collection
                                     byte[] bRowKey = scanResult.getRow();
                                     RowKey rowKey = new RowKey(bRowKey);
-                                    byte[] bSalt = rowKey.getSaltBytes();
                                     Instant rowTime = RowKeyAdapter.getEventTime(rowKey);
+                                    long timeBucketNo = timeline.getSalt().getTimeBucketNo(rowTime);
                                     //return a stream of event objects
-                                    Stream<Event> eventStream = scanResult.listCells()
+                                    Stream<SaltedEvent> eventStream = scanResult.listCells()
                                             .stream()
                                             .map(cell -> {
                                                byte[] content = CellUtil.cloneValue(cell);
                                                Event event = new Event(rowTime, content);
-                                               return event;
+                                               return new SaltedEvent(timeBucketNo, event);
                                             });
                                     return eventStream;
                                 })
-                                .collect(Collectors.toList());
+                                .collect(Collectors.groupingBy(
+                                        SaltedEvent::getTimeBucketNo,
+                                        Collectors.mapping(
+                                                SaltedEvent::getEvent,
+                                                Collectors.toList())));
                     } catch (IOException e) {
                         //TODO what happens to the other threads if we come in here
                         throw new RuntimeException(String.format("Error while trying to fetch %s rows from timeline %s with salt %s",
                                 rowCount, timeline, RowKeyAdapter.getSalt(startKey)), e);
                     }
-                    return new EventsBucket(eventsForSalt, startKey.getSaltBytes());
+                    return eventsForSalt.entrySet();
                 })
-                .sorted()
-                .flatMap(eventsBucket -> eventsBucket.stream())
+                .flatMap(Set::stream)
+                .sorted(Map.Entry.comparingByKey())
+                .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toList());
 
         return events;
@@ -208,8 +213,12 @@ public class TimelineTable extends AbstractTable {
 
         //compress the content family as each cell value can be quite large
         //and should compress well
+        //TODO currently set to GZ compression as SNAPPY does not seem to be supported
+        //by the HBaseTEstingUtility. Need to see if we want to change to SNAPPY (quicker but
+        //doesn't compress as well as GZ) and if so how we can get it working in junits or test
+        //for its presence.
         HColumnDescriptor contentFamily = new HColumnDescriptor(COL_FAMILY_CONTENT)
-                .setCompressionType(Compression.Algorithm.SNAPPY);
+                .setCompressionType(Compression.Algorithm.GZ);
 
         timeline.getRetention().ifPresent(retention -> {
             metaFamily.setTimeToLive(Math.toIntExact(retention.getSeconds()));
@@ -286,6 +295,44 @@ public class TimelineTable extends AbstractTable {
         return mutations.stream();
     };
 
+    public static class SaltedEvent implements  Comparable<SaltedEvent> {
+
+        private final long timeBucketNo;
+        private final Event event;
+
+        public SaltedEvent(long timeBucketNo, Event event) {
+            this.timeBucketNo = timeBucketNo;
+            this.event = event;
+        }
+
+        public Long getTimeBucketNo() {
+            return timeBucketNo;
+        }
+
+        public Event getEvent() {
+            return event;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            SaltedEvent that = (SaltedEvent) o;
+
+            return timeBucketNo == that.timeBucketNo;
+        }
+
+        @Override
+        public int hashCode() {
+            return (int) (timeBucketNo ^ (timeBucketNo >>> 32));
+        }
+
+        @Override
+        public int compareTo(SaltedEvent o) {
+            return 0;
+        }
+    }
     private static class EventsBucket implements  Comparable<EventsBucket> {
         private final List<Event> events;
         private final byte[] bSalt;

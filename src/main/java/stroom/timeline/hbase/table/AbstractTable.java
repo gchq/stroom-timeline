@@ -20,6 +20,7 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Table;
+import org.slf4j.Logger;
 import stroom.timeline.hbase.HBaseConnection;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public abstract class AbstractTable {
         this.hBaseConnection = hBaseConnection;
     }
 
-    void initialiseTable(){
+    void initialiseTable() {
         HTableDescriptor tableDescriptor = getTableDesctptor();
 
         Admin admin = hBaseConnection.getAdmin();
@@ -50,17 +51,15 @@ public abstract class AbstractTable {
         if (!doesTableExist) {
             try {
                 Optional<byte[][]> splitKeys = getRegionSplitKeys();
-                if (splitKeys.isPresent()){
+                if (splitKeys.isPresent()) {
                     admin.createTable(tableDescriptor, splitKeys.get());
+                } else {
+                    admin.createTable(tableDescriptor);
                 }
-                admin.createTable(tableDescriptor);
-
             } catch (IOException e) {
                 throw new RuntimeException("Error creating table " + getLongName(), e);
             }
         }
-
-
     }
 
     Table getTable() throws IOException {
@@ -77,7 +76,7 @@ public abstract class AbstractTable {
      * should return an array of row key split keys. The size of the array should
      * be one less than the desired number of regions. i.e. the first split key in the
      * array is the start key for the second region.
-     *
+     * <p>
      * If the table does not need to be pre-split then return Optional.empty()
      */
     abstract Optional<byte[][]> getRegionSplitKeys();

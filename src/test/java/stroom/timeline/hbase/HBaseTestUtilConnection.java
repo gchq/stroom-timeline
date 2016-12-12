@@ -21,6 +21,9 @@ import org.apache.hadoop.hbase.client.Connection;
 import stroom.timeline.properties.PropertyService;
 
 import java.io.IOException;
+import java.util.Arrays;
+
+import static com.sun.xml.internal.ws.spi.db.BindingContextFactory.LOGGER;
 
 public class HBaseTestUtilConnection implements HBaseConnection {
 
@@ -50,13 +53,9 @@ public class HBaseTestUtilConnection implements HBaseConnection {
     }
 
     public void setup() {
-//        Configuration altConfig = HBaseConfiguration.create();
-//        final int nonDefaultMasterInfoPort = 3333;
-//        final int nonDefaultRegionServerPort = 4444;
-//        altConfig.setInt(HConstants.MASTER_INFO_PORT, nonDefaultMasterInfoPort);
-//        altConfig.setInt(HConstants.REGIONSERVER_PORT, nonDefaultRegionServerPort);
-//        hBaseTestingUtility = new HBaseTestingUtility(altConfig);
         hBaseTestingUtility = new HBaseTestingUtility();
+        System.out.println("Supported compression algorithms: " + Arrays.toString(hBaseTestingUtility.getSupportedCompressionAlgorithms()));
+
         try {
             hBaseTestingUtility.startMiniCluster();
         } catch (Exception e) {

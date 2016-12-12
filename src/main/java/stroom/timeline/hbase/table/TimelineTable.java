@@ -97,6 +97,7 @@ public class TimelineTable extends AbstractTable {
 
 
     public void putEvents(Collection<OrderedEvent> orderedEvents)  {
+        Preconditions.checkNotNull(orderedEvents);
 
         try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
             orderedEvents.stream()
@@ -123,21 +124,31 @@ public class TimelineTable extends AbstractTable {
 
 
     public List<Event> fetchEvents(TimelineView timelineView, int rowCount){
+        Preconditions.checkNotNull(timelineView);
+        Preconditions.checkArgument(rowCount >= 1, "rowCount must be >= 1");
 
         if (!timeline.equals(timelineView.getTimeline())){
             throw new RuntimeException(String.format("TimelineView %s is for a different timeline to this %s",
                     timelineView.getTimeline().getId(), timeline.getId()));
         }
 
-        int scanMaxResults = rowCount / timelineView.getTimeline().getSalt().getSaltCount();
+        //a row may be one event or many events depending on the data, i.e. if many events have
+        //the same event time (to the granularity of the rowkey) then you could get hundreds/thousands
+        //of columns on the row. If we are using salt prefixes then need to divide the desired row
+        //count by the number of salts to get a row limit per scan (salt).
+        final int scanMaxResults = rowCount / timelineView.getTimeline().getSalt().getSaltCount();
 
-        //The time that all delay clalculations are based off for consistentcy
-        Instant now = Instant.now();
+        //The time that all delay calculations are based off for consistency
+        final Instant now = Instant.now();
 
-        //one scan per salt value
+        //Initiate a table scan for each salt in parallel. Each scan will fetch blocks of
+        //ordered events, with a gap between each block. Once all the blocks have been captured
+        //from each scan the blocks need to be assembled into time order to produce a
+        //single list of ordered events.
         List<Event> events = RowKeyAdapter.getAllRowKeys(timelineView)
                 .parallelStream()
                 .map(startKey -> {
+                    //The salted key will ensure the scan only goes to a single region
                     Scan scan = new Scan(startKey.getRowKeyBytes())
                             .addFamily(COL_FAMILY_CONTENT)
                             .setMaxResultSize(scanMaxResults);
@@ -153,18 +164,21 @@ public class TimelineTable extends AbstractTable {
                         scan.setStopRow(stopKey.getRowKeyBytes());
                     }
 
-                    List<Event> eventsForSalt;
+                    final List<Event> eventsForSalt;
                     try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
                         ResultScanner resultScanner = table.getScanner(scan);
                         eventsForSalt = StreamSupport.stream(resultScanner.spliterator(),false)
                                 .sequential()
-                                .flatMap(result -> {
-                                    byte[] bRowKey = result.getRow();
+                                .flatMap(scanResult -> {
+                                    //scanResult represents a single row, so decode the rowkey
+                                    //then get all the cells for the row, adding them
+                                    //to a collection
+                                    byte[] bRowKey = scanResult.getRow();
                                     RowKey rowKey = new RowKey(bRowKey);
                                     byte[] bSalt = rowKey.getSaltBytes();
                                     Instant rowTime = RowKeyAdapter.getEventTime(rowKey);
                                     //return a stream of event objects
-                                    Stream<Event> eventStream = result.listCells()
+                                    Stream<Event> eventStream = scanResult.listCells()
                                             .stream()
                                             .map(cell -> {
                                                byte[] content = CellUtil.cloneValue(cell);
@@ -172,7 +186,6 @@ public class TimelineTable extends AbstractTable {
                                                return event;
                                             });
                                     return eventStream;
-
                                 })
                                 .collect(Collectors.toList());
                     } catch (IOException e) {
@@ -235,7 +248,7 @@ public class TimelineTable extends AbstractTable {
 
     @Override
     String getShortName() {
-        return null;
+        return shortName;
     }
 
     @Override
@@ -248,6 +261,9 @@ public class TimelineTable extends AbstractTable {
         return tableName;
     }
 
+    /**
+     * Convert a QualifiedCell object into a stream of HBase table Mutation objects
+     */
     private Function<QualifiedCell, Stream<Mutation>> qualifiedCellToMutationsMapper = qualifiedCell -> {
 
         List<Mutation> mutations = new ArrayList<>();

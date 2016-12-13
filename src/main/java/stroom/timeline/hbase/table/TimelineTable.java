@@ -20,8 +20,6 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Increment;
-import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
@@ -46,13 +44,14 @@ import stroom.timeline.util.LogUtils;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -60,22 +59,22 @@ import java.util.stream.StreamSupport;
 
 /**
  * DAO for the Timeline HBase table
- *
+ * <p>
  * This is how the data is stored, assuming a contiguous data set.
- *
- *       |   min 1   |  min 2    | min 3     |
+ * <p>
+ * |   min 1   |  min 2    | min 3     |
  * salt|---------------time-------------------->
  * 0   | ###         ###         ###
  * 1   |    ###         ###         ###
  * 2   |       ###         ###         ###
  * 3   |          ###         ###         ###
- *
+ * <p>
  * If we use the modulus for the salt then this would spread the values
  * all over the place and mean a lot of sorting overhead on retrieval.
  * Instead time ranges have a static salt value so that we can grab a range
  * from each salt value and then just sort the small number of batches by their
  * salt value.
- *
+ * <p>
  * The aim is for each set of salt values to reside in its own region to spread
  * the load across region servers. This does mean a scan over a time range means
  * issuing multiple scans (one for each salt) and then assembling the data on receipt.
@@ -113,41 +112,48 @@ public class TimelineTable extends AbstractTable {
     }
 
 
-    public void putEvents(Collection<OrderedEvent> orderedEvents)  {
+    public void putEvents(Collection<OrderedEvent> orderedEvents) {
         Preconditions.checkNotNull(orderedEvents);
 
-        try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
+        //Work out the retention cut off date so we can ignore events before it
+        Instant notBeforeTime = Instant.now()
+                .minus(timeline.getRetention().orElse(Duration.ZERO));
+
+        //keep a table object per thread, keyed on thread id as the table objects
+        //are not thread safe. It is debatable whether we should just call getTable before
+        //each put.
+        ConcurrentMap<Long, Table> tableMap = new ConcurrentHashMap<>();
+        try {
+            //Multiple threads will convert the events into puts and call put on the table.
+            //HBase should buffer the puts in its client code.
             orderedEvents.stream()
                     .parallel()
-                    .sequential() //TODO just temporary
-                    .map(event -> QualifiedCellAdapter.getQualifiedCell(timeline,event))
-                    .flatMap(qualifiedCellToMutationsMapper)
-                    .forEach(mutation -> {
+                    .filter(event -> event.getEventTime().isAfter(notBeforeTime))
+                    .map(event -> QualifiedCellAdapter.getQualifiedCell(timeline, event))
+                    .map(qualifiedCellToPutMapper)
+                    .forEach(put -> {
                         try {
-                            if (mutation instanceof Increment){
-                               table.increment((Increment)mutation);
-                            } else if (mutation instanceof Put) {
-                                table.put((Put)mutation);
-                            } else {
-                                throw new RuntimeException(String.format("Mutations is of a class %s we weren't expecting",mutation.getClass().getName()));
-                            }
+                            Table table = tableMap.computeIfAbsent(Thread.currentThread().getId(), key -> getTable());
+                            table.put(put);
                         } catch (IOException e) {
-                            throw new RuntimeException("Error writing data to HBase",e);
+                            throw new RuntimeException("Error writing data to HBase", e);
                         }
                     });
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(String.format("Error while trying persist a collection of orderedEvents of size %s", orderedEvents.size()), e);
+        } finally {
+            tableMap.forEach((id, table) -> closeTable(table));
         }
     }
 
 
-    public List<Event> fetchEvents(TimelineView timelineView, int rowCount){
+    public List<Event> fetchEvents(TimelineView timelineView, int rowCount) {
         Preconditions.checkNotNull(timelineView);
         Preconditions.checkArgument(rowCount >= 1, "rowCount must be >= 1");
 
         LOGGER.info("fetchEvents called for timeline {} and rowCount {}", timelineView, rowCount);
 
-        if (!timeline.equals(timelineView.getTimeline())){
+        if (!timeline.equals(timelineView.getTimeline())) {
             throw new RuntimeException(String.format("TimelineView %s is for a different timeline to this %s",
                     timelineView.getTimeline().getId(), timeline.getId()));
         }
@@ -167,7 +173,6 @@ public class TimelineTable extends AbstractTable {
         //single list of ordered events.
         List<Event> events = RowKeyAdapter.getAllStartKeys(timelineView)
                 .parallelStream()
-                .sequential() //TODO temporary, need to remove
                 .map(startKey -> {
                     //Use a prefix filter to ensure we do start scanning into another salt's values
                     PrefixFilter prefixFilter = new PrefixFilter(startKey.getSaltBytes());
@@ -188,7 +193,7 @@ public class TimelineTable extends AbstractTable {
                     //for now as the salt is hard coded it doesn't matter
                     //This current code is too simplistic as it only deals with the delay and not the
                     //salting
-                    if (!timelineView.getDelay().equals(Duration.ZERO)){
+                    if (!timelineView.getDelay().equals(Duration.ZERO)) {
                         Instant notBeforeTime = now.minus(timelineView.getDelay());
                         RowKey stopKey = RowKeyAdapter.getRowKey(startKey.getSaltBytes(), notBeforeTime);
                         scan.setStopRow(stopKey.getRowKeyBytes());
@@ -198,9 +203,9 @@ public class TimelineTable extends AbstractTable {
 
                     final Map<Long, List<Event>> eventsForSalt;
 
-                    try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
+                    try (final Table table = hBaseConnection.getConnection().getTable(tableName)) {
                         ResultScanner resultScanner = table.getScanner(scan);
-                        eventsForSalt = StreamSupport.stream(resultScanner.spliterator(),false)
+                        eventsForSalt = StreamSupport.stream(resultScanner.spliterator(), false)
                                 .sequential()
                                 .flatMap(scanResult -> {
                                     //scanResult represents a single row, so decode the rowkey
@@ -218,9 +223,9 @@ public class TimelineTable extends AbstractTable {
                                     Stream<SaltedEvent> eventStream = scanResult.listCells()
                                             .stream()
                                             .map(cell -> {
-                                               byte[] content = CellUtil.cloneValue(cell);
-                                               Event event = new Event(rowTime, content);
-                                               return new SaltedEvent(timeBucketNo, event);
+                                                byte[] content = CellUtil.cloneValue(cell);
+                                                Event event = new Event(rowTime, content);
+                                                return new SaltedEvent(timeBucketNo, event);
                                             });
                                     return eventStream;
                                 })
@@ -284,8 +289,8 @@ public class TimelineTable extends AbstractTable {
             //first salt value, i.e. 4 salts = 3 split points
             short[] splitKeySalts = Arrays.copyOfRange(salts, 1, salts.length);
             byte[][] splitKeys = new byte[splitKeySalts.length][];
-            for (int i = 0; i< splitKeySalts.length; i++) {
-               splitKeys[i] = Bytes.toBytes(splitKeySalts[i]);
+            for (int i = 0; i < splitKeySalts.length; i++) {
+                splitKeys[i] = Bytes.toBytes(splitKeySalts[i]);
             }
             return Optional.of(splitKeys);
         } else {
@@ -317,15 +322,14 @@ public class TimelineTable extends AbstractTable {
     /**
      * Convert a QualifiedCell object into a stream of HBase table Mutation objects
      */
-    private Function<QualifiedCell, Stream<Mutation>> qualifiedCellToMutationsMapper = qualifiedCell -> {
-
-        List<Mutation> mutations = new ArrayList<>();
+    private Function<QualifiedCell, Put> qualifiedCellToPutMapper = qualifiedCell -> {
 
         RowKey rowKey = qualifiedCell.getRowKey();
         long eventTimeMs = RowKeyAdapter.getEventTime(rowKey).toEpochMilli();
         byte[] bRowKey = rowKey.getRowKeyBytes();
 
         //do the put with the event time as the cell timestamp, instead of HBase just using the default now()
+        //this is so the aging off of cells is done based on event time, not insert time
         Put eventPut = new Put(bRowKey)
                 .addColumn(COL_FAMILY_CONTENT, qualifiedCell.getColumnQualifier(), eventTimeMs, qualifiedCell.getValue());
 
@@ -334,17 +338,10 @@ public class TimelineTable extends AbstractTable {
                     rowKey.toString(), ByteArrayUtils.byteArrayToAllForms(qualifiedCell.getColumnQualifier()));
         });
 
-        //TODO do we care about having a row change number, probably adds a fair bit of cost and
-        //we can't combine the put and increment into a single row op so will probably require two row locks
-        Increment ecnIncrement = new Increment(bRowKey)
-                .addColumn(COL_FAMILY_META, COL_ROW_CHANGE_NUMBER, 1L);
-        mutations.add(eventPut);
-        mutations.add(ecnIncrement);
-
-        return mutations.stream();
+        return eventPut;
     };
 
-    public static class SaltedEvent implements  Comparable<SaltedEvent> {
+    public static class SaltedEvent implements Comparable<SaltedEvent> {
 
         private final long timeBucketNo;
         private final Event event;
@@ -382,14 +379,15 @@ public class TimelineTable extends AbstractTable {
             return 0;
         }
     }
-    private static class EventsBucket implements  Comparable<EventsBucket> {
+
+    private static class EventsBucket implements Comparable<EventsBucket> {
         private final List<Event> events;
         private final byte[] bSalt;
         private final Instant firstEventTime;
 
         /**
          * @param events A list of events supplied sorted by the event time
-         * @param bSalt The salt value in bytes for this batch of events
+         * @param bSalt  The salt value in bytes for this batch of events
          */
         public EventsBucket(final List<Event> events, final byte[] bSalt) {
             this.events = events;

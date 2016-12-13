@@ -29,7 +29,7 @@
     <logger name="org.mortbay.log" level="error"/>
     <logger name="org.apache.zookeeper" level="error"/>
 
-    <logger name="stroom.timeline" level="trace"/>
+    <logger name="stroom.timeline" level="debug"/>
 
     <logger name="stroom.timeline.hbase.table" level="debug"/>
 

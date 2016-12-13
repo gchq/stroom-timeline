@@ -20,7 +20,13 @@ import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.Increment;
+import org.apache.hadoop.hbase.client.Mutation;
+import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
@@ -34,11 +40,19 @@ import stroom.timeline.hbase.structure.RowKey;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
+import stroom.timeline.util.ByteArrayUtils;
+import stroom.timeline.util.LogUtils;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,11 +84,11 @@ public class TimelineTable extends AbstractTable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TimelineTable.class);
 
-    private static final String LONG_NAME_PREFIX = "Timeline";
-    private static final String SHORT_NAME_PREFIX = "t";
-    private static final byte[] COL_FAMILY_CONTENT = Bytes.toBytes("c");
-    private static final byte[] COL_FAMILY_META = Bytes.toBytes("m");
-    private static final byte[] COL_ROW_CHANGE_NUMBER = Bytes.toBytes("RCN");
+    static final String LONG_NAME_PREFIX = "Timeline";
+    static final String SHORT_NAME_PREFIX = "t";
+    static final byte[] COL_FAMILY_CONTENT = Bytes.toBytes("c");
+    static final byte[] COL_FAMILY_META = Bytes.toBytes("m");
+    static final byte[] COL_ROW_CHANGE_NUMBER = Bytes.toBytes("RCN");
     private final Timeline timeline;
     private final HBaseConnection hBaseConnection;
     private final String shortName;
@@ -105,6 +119,7 @@ public class TimelineTable extends AbstractTable {
         try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
             orderedEvents.stream()
                     .parallel()
+                    .sequential() //TODO just temporary
                     .map(event -> QualifiedCellAdapter.getQualifiedCell(timeline,event))
                     .flatMap(qualifiedCellToMutationsMapper)
                     .forEach(mutation -> {
@@ -150,13 +165,23 @@ public class TimelineTable extends AbstractTable {
         //ordered events, with a gap between each block. Once all the blocks have been captured
         //from each scan the blocks need to be assembled into time order to produce a
         //single list of ordered events.
-        List<Event> events = RowKeyAdapter.getAllRowKeys(timelineView)
+        List<Event> events = RowKeyAdapter.getAllStartKeys(timelineView)
                 .parallelStream()
+                .sequential() //TODO temporary, need to remove
                 .map(startKey -> {
+                    //Use a prefix filter to ensure we do start scanning into another salt's values
+                    PrefixFilter prefixFilter = new PrefixFilter(startKey.getSaltBytes());
+
                     //The salted key will ensure the scan only goes to a single region
                     Scan scan = new Scan(startKey.getRowKeyBytes())
                             .addFamily(COL_FAMILY_CONTENT)
-                            .setMaxResultSize(scanMaxResults);
+                            .setMaxResultSize(scanMaxResults)
+                            .setFilter(prefixFilter);
+
+                    LogUtils.traceIfEnabled(LOGGER, () -> {
+                        LOGGER.trace("Creating scan for start key {} and max rows of {}",
+                                ByteArrayUtils.byteArrayToAllForms(startKey.getRowKeyBytes()), scanMaxResults);
+                    });
 
                     //TODO need to set a stop row so we get one contiguous chunk of rows for a
                     //time bucket and not jump onto another time bucket.
@@ -167,9 +192,12 @@ public class TimelineTable extends AbstractTable {
                         Instant notBeforeTime = now.minus(timelineView.getDelay());
                         RowKey stopKey = RowKeyAdapter.getRowKey(startKey.getSaltBytes(), notBeforeTime);
                         scan.setStopRow(stopKey.getRowKeyBytes());
+                        LOGGER.trace("Adding stop row {} for notBeforeTime: {}",
+                                ByteArrayUtils.byteArrayToAllForms(stopKey.getRowKeyBytes()), notBeforeTime);
                     }
 
                     final Map<Long, List<Event>> eventsForSalt;
+
                     try (final Table table = hBaseConnection.getConnection().getTable(tableName)){
                         ResultScanner resultScanner = table.getScanner(scan);
                         eventsForSalt = StreamSupport.stream(resultScanner.spliterator(),false)
@@ -182,6 +210,10 @@ public class TimelineTable extends AbstractTable {
                                     RowKey rowKey = new RowKey(bRowKey);
                                     Instant rowTime = RowKeyAdapter.getEventTime(rowKey);
                                     long timeBucketNo = timeline.getSalt().getTimeBucketNo(rowTime);
+
+                                    LogUtils.traceIfEnabled(LOGGER, () -> LOGGER.trace("Cell count on row {} is {}",
+                                            rowKey.toString(), scanResult.listCells().size()));
+
                                     //return a stream of event objects
                                     Stream<SaltedEvent> eventStream = scanResult.listCells()
                                             .stream()
@@ -202,6 +234,13 @@ public class TimelineTable extends AbstractTable {
                         throw new RuntimeException(String.format("Error while trying to fetch %s rows from timeline %s with salt %s",
                                 rowCount, timeline, RowKeyAdapter.getSalt(startKey)), e);
                     }
+
+                    LogUtils.traceIfEnabled(LOGGER, () -> {
+                        eventsForSalt.keySet().stream()
+                                .sorted()
+                                .map(val -> "timeBucketNo: " + val.toString())
+                                .forEach(LOGGER::trace);
+                    });
                     return eventsForSalt.entrySet();
                 })
                 .flatMap(Set::stream)
@@ -289,6 +328,11 @@ public class TimelineTable extends AbstractTable {
         //do the put with the event time as the cell timestamp, instead of HBase just using the default now()
         Put eventPut = new Put(bRowKey)
                 .addColumn(COL_FAMILY_CONTENT, qualifiedCell.getColumnQualifier(), eventTimeMs, qualifiedCell.getValue());
+
+        LogUtils.traceIfEnabled(LOGGER, () -> {
+            LOGGER.trace("Creating put, rowKey: {}, colQual: {}",
+                    rowKey.toString(), ByteArrayUtils.byteArrayToAllForms(qualifiedCell.getColumnQualifier()));
+        });
 
         //TODO do we care about having a row change number, probably adds a fair bit of cost and
         //we can't combine the put and increment into a single row op so will probably require two row locks

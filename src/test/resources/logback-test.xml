@@ -24,13 +24,17 @@
         </layout>
     </appender>
 
-    <!-- various exclusions to reduce the loggin noise -->
+    <!-- various exclusions to reduce the logging noise -->
     <logger name="org.apache.hadoop" level="error"/>
     <logger name="org.mortbay.log" level="error"/>
     <logger name="org.apache.zookeeper" level="error"/>
 
-    <logger name="stroom" level="debug"/>
+    <logger name="stroom.timeline" level="trace"/>
 
+    <logger name="stroom.timeline.hbase.table" level="debug"/>
+
+    <!-- some unknown library classes are logging to info and warn so make the default error and
+    white list what we do want -->
     <root level="error">
         <appender-ref ref="STDOUT" />
     </root>

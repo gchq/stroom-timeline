@@ -16,12 +16,16 @@
 package stroom.timeline.hbase;
 
 import org.apache.hadoop.hbase.HBaseTestingUtility;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
-import stroom.timeline.properties.PropertyService;
+import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.Table;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.stream.StreamSupport;
 
 public class HBaseTestUtilConnection implements HBaseConnection {
 
@@ -67,6 +71,19 @@ public class HBaseTestUtilConnection implements HBaseConnection {
 
     public HBaseTestingUtility gethBaseTestingUtility() {
         return hBaseTestingUtility;
+    }
+
+    public long getCellCount(String tableName, byte[] family) throws IOException {
+       Scan scan = new Scan().addFamily(family);
+        TableName tableNameObj = TableName.valueOf(tableName);
+
+        try (final Table table = getConnection().getTable(tableNameObj)){
+            ResultScanner resultScanner = table.getScanner(scan);
+
+            return StreamSupport.stream(resultScanner.spliterator(), true)
+                    .mapToLong(result -> result.listCells().size())
+                    .sum();
+        }
     }
 
 }

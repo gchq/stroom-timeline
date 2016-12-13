@@ -74,7 +74,7 @@ public class TestTimelineTable extends AbstractTableTest {
 
 
     @Test
-    public void testFecthEvents_singleSalt() throws InterruptedException {
+    public void testFecthEvents_singleSalt() throws Exception {
 
         //put a load of events into the table, in a random order
 
@@ -102,7 +102,36 @@ public class TestTimelineTable extends AbstractTableTest {
     }
 
     @Test
-    public void testFecthEvents_fourSalts_oneBandPerSalt() throws InterruptedException {
+    public void testFecthEvents_fourSalts_oneBandPerSalt_oneEventsPerSalt() throws Exception {
+
+        //put a load of events into the table, in a random order
+
+        final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
+        final int saltCount = 4;
+        final Duration saltRange = Duration.ofSeconds(1);
+        final int eventsPerSaltRange = 1;
+        final int totalEvents = eventsPerSaltRange * saltCount;
+        final Duration eventDelta = saltRange.dividedBy(eventsPerSaltRange);
+
+        final AtomicLong counter = new AtomicLong(0);
+        List<OrderedEvent> randomEvents = LongStream.range(0, totalEvents)
+                .boxed()
+                .map(i -> {
+                    Instant eventTime = startTime.plus(eventDelta.multipliedBy(i)).toInstant();
+                    byte[] content = Bytes.toBytes(counter.incrementAndGet());
+                    LongSequentialIdentifier idProvider = new LongSequentialIdentifier(counter.get());
+                    return new OrderedEvent(eventTime, content, idProvider);
+                })
+                .collect(Collectors.toList());
+
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000), saltCount, saltRange)
+                .assignId(1);
+
+        doPutThenFetch(randomEvents, timeline);
+    }
+
+    @Test
+    public void testFecthEvents_fourSalts_oneBandPerSalt_fourEventsPerSalt() throws Exception {
 
         //put a load of events into the table, in a random order
 
@@ -124,13 +153,13 @@ public class TestTimelineTable extends AbstractTableTest {
                 })
                 .collect(Collectors.toList());
 
-        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000))
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000), saltCount, saltRange)
                 .assignId(1);
 
         doPutThenFetch(randomEvents, timeline);
     }
 
-    public List<Event> doPutThenFetch(List<OrderedEvent> events, Timeline timeline) throws InterruptedException {
+    public List<Event> doPutThenFetch(List<OrderedEvent> events, Timeline timeline) throws InterruptedException, IOException {
 
         //put a load of events into the table, in a random order
         List<Event> eventsInOrder = events.stream()
@@ -144,6 +173,9 @@ public class TestTimelineTable extends AbstractTableTest {
 
         timelineTable.putEvents(events);
 
+        long cellCount = hBaseTestUtilConnection.getCellCount(TimelineTable.SHORT_NAME_PREFIX + timeline.getId(), TimelineTable.COL_FAMILY_CONTENT );
+
+        LOGGER.info("Cell count: {}", cellCount);
 
         //fetch all events from the table and compare to a sorted list of the input events
         List<Event> eventsFromFetch = timelineTable.fetchEvents(timelineView, 5000);

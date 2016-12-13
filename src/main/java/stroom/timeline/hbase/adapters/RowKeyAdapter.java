@@ -29,50 +29,52 @@ public class RowKeyAdapter {
 
 
     /**
-     * @return The row key for the current offset of the timeline view
+     * For a given offset return a start row key for each salt value. Each start row key will
+     * have an identical time portion but differ in terms of the salt part
+     * @param timelineView
+     * @return
      */
-    public static RowKey getRowKey(TimelineView timelineView) {
-        return getRowKey(timelineView.getTimeline(), timelineView.getOffset());
-    }
-
-    public static List<RowKey> getAllRowKeys(TimelineView timelineView){
-        List<RowKey> rowKeys = new ArrayList<>();
-        for (short salt : timelineView.getSalt().getAllSaltValues()) {
-            RowKey rowKey = getRowKey(salt, timelineView.getOffset());
+    public static List<RowKey> getAllStartKeys(final TimelineView timelineView){
+        final List<RowKey> rowKeys = new ArrayList<>();
+        //This takes the simplistic approach of applying the same time to each start key
+        //when in reality each salt band would start from a different time. However
+        //this does not matter as there will be no rows in front to incorrectly pick up
+        for (final short salt : timelineView.getSalt().getAllSaltValues()) {
+            final RowKey rowKey = getRowKey(salt, timelineView.getOffset());
             rowKeys.add(rowKey);
         }
         return rowKeys;
     }
 
-    public static RowKey getRowKey(byte[] bSalt, Instant time) {
-        byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
+    public static RowKey getRowKey(final byte[] bSalt, final Instant time) {
+        final byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
         return new RowKey(bSalt, bEventTime);
     }
 
-    public static RowKey getRowKey(short salt, Instant time) {
-        byte[] bSalt = Bytes.toBytes(salt);
-        byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
+    public static RowKey getRowKey(final short salt, final Instant time) {
+        final byte[] bSalt = Bytes.toBytes(salt);
+        final byte[] bEventTime = Bytes.toBytes(time.toEpochMilli());
         return new RowKey(bSalt, bEventTime);
     }
     /**
      * @return A row key for the timeline and a point on that timeline
      */
-    public static RowKey getRowKey(Timeline timeline, Instant time) {
-        short salt = timeline.getSalt().computeSalt(time);
+    public static RowKey getRowKey(final Timeline timeline, final Instant time) {
+        final short salt = timeline.getSalt().computeSalt(time);
         return getRowKey(salt, time);
     }
 
-    public static RowKey getRowKey(Timeline timeline, Event event) {
+    public static RowKey getRowKey(final Timeline timeline, final Event event) {
         return getRowKey(timeline, event.getEventTime());
     }
 
 
-    public static short getSalt(RowKey rowKey) {
+    public static short getSalt(final RowKey rowKey) {
         return Bytes.toShort(rowKey.getSaltBytes());
 
     }
 
-    public static Instant getEventTime(RowKey rowKey) {
+    public static Instant getEventTime(final RowKey rowKey) {
         return Instant.ofEpochMilli(Bytes.toLong(rowKey.getEventTimeBytes()));
 
     }

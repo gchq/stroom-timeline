@@ -68,6 +68,39 @@ public class TestSalt {
     @Test
     public void getAllSalts() throws Exception {
 
+        int saltCount = 10;
+        Duration saltRange = Duration.ofMillis(100);
+
+        Salt salt = new Salt(saltCount, saltRange);
+
+        short[] salts = salt.getAllSaltValues();
+
+        Assert.assertEquals(saltCount, salts.length);
+
+        Assert.assertArrayEquals(new short[] {0,1,2,3,4,5,6,7,8,9},salts);
+    }
+
+    @Test
+    public void nextSalt() throws Exception {
+
+        int saltCount = 4;
+        Duration saltRange = Duration.ofMillis(100);
+
+        Salt salt = new Salt(saltCount, saltRange);
+
+        short currentSalt = 0;
+
+        currentSalt = salt.nextSalt(currentSalt);
+        Assert.assertEquals(1, currentSalt);
+
+        currentSalt = salt.nextSalt(currentSalt);
+        Assert.assertEquals(2, currentSalt);
+
+        currentSalt = salt.nextSalt(currentSalt);
+        Assert.assertEquals(3, currentSalt);
+
+        currentSalt = salt.nextSalt(currentSalt);
+        Assert.assertEquals(0, currentSalt);
     }
 
     @Test

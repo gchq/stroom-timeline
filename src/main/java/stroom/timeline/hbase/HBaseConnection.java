@@ -24,6 +24,4 @@ public interface HBaseConnection extends DBConnection<Connection> {
     Connection getConnection();
 
     Admin getAdmin();
-
-    PropertyService getPropertyService();
 }

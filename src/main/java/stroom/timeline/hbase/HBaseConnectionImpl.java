@@ -26,17 +26,34 @@ import stroom.timeline.properties.PropertyService;
 import java.io.IOException;
 
 public class HBaseConnectionImpl implements HBaseConnection {
-    private final PropertyService propertyService;
+    private final int zkClientPort;
+    private final String zkQuorum;
+    private final String zkParent;
+    private final int hbasePort;
+    private final String hbaseHost;
     Connection connection;
 
-    public HBaseConnectionImpl(PropertyService propertyService) {
-        Preconditions.checkNotNull(propertyService);
+    public HBaseConnectionImpl(
+            final int zkClientPort,
+            final String zkQuorum,
+            final String zkParent,
+            final String hbaseHost,
+            final int hbasePort) {
 
-        this.propertyService = propertyService;
+        this.zkClientPort = zkClientPort;
+        this.zkQuorum = zkQuorum;
+        this.zkParent = zkParent;
+        this.hbaseHost = hbaseHost;
+        this.hbasePort = hbasePort;
+
+        Preconditions.checkArgument(zkClientPort != 0);
+        Preconditions.checkNotNull(zkQuorum);
+        Preconditions.checkNotNull(zkParent);
+        Preconditions.checkArgument(hbasePort != 0);
+        Preconditions.checkNotNull(hbaseHost);
 
         //eagerly create the connection
         createConnection();
-
     }
 
     @Override
@@ -56,31 +73,18 @@ public class HBaseConnectionImpl implements HBaseConnection {
         return admin;
     }
 
-    @Override
-    public PropertyService getPropertyService() {
-        return propertyService;
-    }
-
-
     private void createConnection(){
         Configuration conf = HBaseConfiguration.create();
-        conf.set("hbase.zookeeper.property.clientPort",
-                propertyService.getOrDefaultStringProperty(PropertyService.PROP_KEY_ZOOKEEPER_PORT,"2181"));
-        conf.set("hbase.zookeeper.quorum",
-                propertyService.getOrDefaultStringProperty(PropertyService.PROP_KEY_ZOOKEEPER_QUORUM,"localhost"));
-        conf.set("zookeeper.znode.parent",
-                propertyService.getOrDefaultStringProperty(PropertyService.PROP_KEY_ZOOKEEPER_ZNODE_PARENT,"/hbase"));
-        String hbaseMasterHost = propertyService.getOrDefaultStringProperty(PropertyService.PROP_KEY_HBASE_MASTER_HOST,"localhost");
-        String hbaseMasterPort = propertyService.getOrDefaultStringProperty(PropertyService.PROP_KEY_HBASE_MASTER_PORT,"60000");
-        conf.set("hbase.master", hbaseMasterHost + ":" + hbaseMasterPort);
+        conf.set("hbase.zookeeper.property.clientPort", String.valueOf(zkClientPort));
+        conf.set("hbase.zookeeper.quorum", zkQuorum);
+        conf.set("zookeeper.znode.parent",zkParent);
+        conf.set("hbase.master", String.format("%s:%s", hbaseHost, hbasePort));
 
         try {
             connection = ConnectionFactory.createConnection(conf);
         } catch (IOException e) {
             throw new RuntimeException("Unable to create HBase connection", e);
         }
-        this.connection = connection;
-
     }
 
 

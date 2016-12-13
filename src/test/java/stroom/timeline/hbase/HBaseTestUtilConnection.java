@@ -45,11 +45,6 @@ public class HBaseTestUtilConnection implements HBaseConnection {
         }
     }
 
-    @Override
-    public PropertyService getPropertyService() {
-        throw new UnsupportedOperationException("Method not supported in this implementation");
-    }
-
     public void setup() {
         hBaseTestingUtility = new HBaseTestingUtility();
         System.out.println("Supported compression algorithms: " + Arrays.toString(hBaseTestingUtility.getSupportedCompressionAlgorithms()));

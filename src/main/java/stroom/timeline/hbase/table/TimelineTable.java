@@ -23,6 +23,8 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import stroom.timeline.api.TimelineView;
 import stroom.timeline.hbase.HBaseConnection;
 import stroom.timeline.hbase.adapters.QualifiedCellAdapter;
@@ -66,6 +68,7 @@ import java.util.stream.StreamSupport;
  */
 public class TimelineTable extends AbstractTable {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TimelineTable.class);
 
     private static final String LONG_NAME_PREFIX = "Timeline";
     private static final String SHORT_NAME_PREFIX = "t";
@@ -126,6 +129,8 @@ public class TimelineTable extends AbstractTable {
     public List<Event> fetchEvents(TimelineView timelineView, int rowCount){
         Preconditions.checkNotNull(timelineView);
         Preconditions.checkArgument(rowCount >= 1, "rowCount must be >= 1");
+
+        LOGGER.info("fetchEvents called for timeline {} and rowCount {}", timelineView, rowCount);
 
         if (!timeline.equals(timelineView.getTimeline())){
             throw new RuntimeException(String.format("TimelineView %s is for a different timeline to this %s",

@@ -81,4 +81,13 @@ public class HBaseTimelineView implements TimelineView {
     public List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset) {
         return null;
     }
+
+    @Override
+    public String toString() {
+        return "HBaseTimelineView{" +
+                "timeline=" + timeline +
+                ", delay=" + delay +
+                ", offset=" + offset +
+                '}';
+    }
 }

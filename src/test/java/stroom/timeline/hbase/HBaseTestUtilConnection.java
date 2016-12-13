@@ -23,8 +23,6 @@ import stroom.timeline.properties.PropertyService;
 import java.io.IOException;
 import java.util.Arrays;
 
-import static com.sun.xml.internal.ws.spi.db.BindingContextFactory.LOGGER;
-
 public class HBaseTestUtilConnection implements HBaseConnection {
 
     private HBaseTestingUtility hBaseTestingUtility;

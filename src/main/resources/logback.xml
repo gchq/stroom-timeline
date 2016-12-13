@@ -7,10 +7,11 @@
         </layout>
     </appender>
 
-    <logger name="com.base22" level="TRACE"/>
+    <logger name="org.apache.hadoop.hbase.HBaseTestingUtility" level="ERROR"/>
 
 
     <root level="debug">
         <appender-ref ref="STDOUT" />
     </root>
+
 </configuration>

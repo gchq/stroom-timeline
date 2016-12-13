@@ -17,19 +17,25 @@ package stroom.timeline.hbase.table;
 
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import stroom.timeline.hbase.HBaseTestUtilConnection;
 
 public class AbstractTableTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTableTest.class);
 
     HBaseTestUtilConnection hBaseTestUtilConnection = new HBaseTestUtilConnection();
 
     @Before
     public void setUp() throws Exception {
+        LOGGER.info("Setting up HBaseTestUtilConnection");
         hBaseTestUtilConnection.setup();
     }
 
     @After
     public void tearDown() throws Exception {
+        LOGGER.info("Tearing down HBaseTestUtilConnection");
         hBaseTestUtilConnection.teardown();
     }
 }

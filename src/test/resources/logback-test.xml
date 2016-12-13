@@ -25,14 +25,13 @@
     </appender>
 
     <!-- various exclusions to reduce the loggin noise -->
-    <logger name="org.apache.hadoop.hbase" level="error"/>
-    <logger name="org.apache.hadoop.security" level="error"/>
+    <logger name="org.apache.hadoop" level="error"/>
     <logger name="org.mortbay.log" level="error"/>
     <logger name="org.apache.zookeeper" level="error"/>
 
     <logger name="stroom" level="debug"/>
 
-    <root level="info">
+    <root level="error">
         <appender-ref ref="STDOUT" />
     </root>
 

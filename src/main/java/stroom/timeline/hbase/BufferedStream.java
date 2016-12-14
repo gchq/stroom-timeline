@@ -17,76 +17,62 @@
 
 package stroom.timeline.hbase;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Spliterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-/*
- * This class is based on code from http://stackoverflow.com/questions/23462209/stream-api-and-queues-in-java-8
- */
 
 /**
  * The head of the queue is the oldest item
  */
-@Deprecated
-public class QueueSpliterator<T> implements Spliterator<T> {
+public class BufferedStream<T> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BufferedStream.class);
 
     private final BlockingQueue<T> queue;
     private final Duration timeout;
     private final Supplier<Stream<T>> itemsSupplier;
     private final Duration topUpRetryInterval;
 
-    public QueueSpliterator(final BlockingQueue<T> queue, final Duration timeout, final Supplier<Stream<T>> itemsSupplier, final Duration topUpRetryInterval) {
+    public BufferedStream(final BlockingQueue<T> queue, final Duration timeout, final Supplier<Stream<T>> itemsSupplier, final Duration topUpRetryInterval) {
         this.queue = queue;
         this.timeout = timeout;
         this.itemsSupplier = itemsSupplier;
         this.topUpRetryInterval = topUpRetryInterval;
     }
 
-    @Override
-    public int characteristics() {
-        return Spliterator.NONNULL | Spliterator.ORDERED | Spliterator.SORTED;
+    public Stream<T> stream() {
+        Supplier<T> supplier = () -> {
+            //The stream consumer is trying to get another item off the stream
+            if (queue.isEmpty()) {
+                //initiate an asynchronous top up of the queue.  The Poll method below will handle waiting
+                //for the items to appear in the queue
+                ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+                executorService.submit(this::topUpQueue);
+            }
+            //We are the only thread on this queue so now it has been topped up we can poll.
+            //The top up may have added nothing if the timeout was reached in which case the stream will end
+            try {
+                return queue.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                //thread has been interrupted so give up and return nothing
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted", e);
+            }
+        };
+       return Stream.generate(supplier);
     }
 
-    @Override
-    public long estimateSize() {
-        return Long.MAX_VALUE;
-    }
-
-    @Override
-    public boolean tryAdvance(final Consumer<? super T> action) {
-        //The stream consumer is trying to get another item off the stream
-        if (queue.isEmpty()) {
-            //initiate an asynchronous top up of the queue.  The Poll method below will handle waiting
-            //for the items to appear in the queue
-            ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-            executorService.submit(this::topUpQueue);
-        }
-        //We are the only thread on this queue so now it has been topped up we can poll.
-        //The top up may have added nothing if the timeout was reached in which case the stream will end
-        final T next;
-        try {
-            next = queue.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            //thread has been interrupted so give up and return nothing
-            Thread.currentThread().interrupt();
-            return false;
-        }
-        if (next == null) {
-            return false;
-        }
-        action.accept(next);
-        return true;
-    }
 
     private void topUpQueue() {
         final AtomicLong counter = new AtomicLong();
@@ -120,6 +106,7 @@ public class QueueSpliterator<T> implements Spliterator<T> {
                     } catch (InterruptedException e) {
                         //thread has been interrupted so give up and return nothing
                         Thread.currentThread().interrupt();
+                        LOGGER.error("topUpQueue interrupted");
                         break;
                     }
                 } else {
@@ -130,10 +117,6 @@ public class QueueSpliterator<T> implements Spliterator<T> {
         }
     }
 
-    @Override
-    public Spliterator<T> trySplit() {
-        return null;
-    }
 
 
 }

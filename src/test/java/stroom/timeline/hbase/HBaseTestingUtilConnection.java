@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.stream.StreamSupport;
 
-public class HBaseTestUtilConnection implements HBaseConnection {
+public class HBaseTestingUtilConnection implements HBaseConnection {
 
     private HBaseTestingUtility hBaseTestingUtility;
 

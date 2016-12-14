@@ -28,7 +28,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class HBaseTimelineView implements TimelineView {
 
@@ -39,7 +38,7 @@ public class HBaseTimelineView implements TimelineView {
     private final Duration streamTimeout;
     private final Duration topUpRetryInterval;
     private final int fetchSize;
-    private final QueueSpliterator<Event> eventQueueSpliterator;
+    private final BufferedStream<Event> bufferedEventStream;
     private final BlockingQueue<Event> eventQueue;
 
     @Override
@@ -74,7 +73,8 @@ public class HBaseTimelineView implements TimelineView {
 
     @Override
     public Stream<Event> stream(final TimelineView timelineView) {
-        return StreamSupport.stream(eventQueueSpliterator,false);
+        return bufferedEventStream.stream()
+                .sequential();
     }
 
     HBaseTimelineView(final Timeline timeline, final TimelineTable timelineTable,
@@ -93,7 +93,7 @@ public class HBaseTimelineView implements TimelineView {
 
         Supplier<Stream<Event>> eventSupplier = () -> timelineTable.streamEvents(this, fetchSize);
 
-        eventQueueSpliterator = new QueueSpliterator<>(eventQueue, streamTimeout, eventSupplier, topUpRetryInterval);
+        bufferedEventStream = new BufferedStream<>(eventQueue, streamTimeout, eventSupplier, topUpRetryInterval);
     }
 
     @Override

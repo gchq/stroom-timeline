@@ -23,7 +23,6 @@ import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.stream.Stream;
 
 public class HBaseTimelineView implements TimelineView {
@@ -31,6 +30,7 @@ public class HBaseTimelineView implements TimelineView {
     private final Timeline timeline;
     private final Duration delay;
     private final Instant offset;
+//    private final QueueSpliterator<Event> eventQueueSpliterator;
 
     //TODO create a queue so clients can grab events off the top and it can be refilled from the bottom
     //by calls to HBase. We can then prefetch some events to keep the queue stocked up removing any latency
@@ -56,31 +56,18 @@ public class HBaseTimelineView implements TimelineView {
         return offset;
     }
 
+    @Override
+    public Stream<Event> stream(final TimelineView timelineView) {
+        return null;
+    }
+
     HBaseTimelineView(Timeline timeline, Duration delay, Instant offset) {
         this.timeline = timeline;
         this.delay = delay;
         this.offset = offset;
+//        eventQueueSpliterator
     }
 
-    @Override
-    public List<Event> take(TimelineView timelineView, int takeCount) {
-        return null;
-    }
-
-    @Override
-    public List<Event> poll(TimelineView timelineView, int takeCount) {
-        return null;
-    }
-
-    @Override
-    public Stream<Event> stream(TimelineView timelineView) {
-        return null;
-    }
-
-    @Override
-    public List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset) {
-        return null;
-    }
 
     @Override
     public String toString() {

@@ -23,17 +23,17 @@ import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
 /**
  * This represents a view onto a Timeline, typically starting from a point somewhere
- * along the timeline. The view also support imposing a delay to preventevents  more recent
+ * along the timeline. The view also support imposing a delay to prevent events more recent
  * than a set duration from being retrieved. This delay is relative to the system time (now()).
  *
- * Multiple TimelineView instances can be created against the same Timeline. This class is intended
- * for use by a single thread, given the sequential nature of the data it returns.
+ * Multiple TimelineView instances can be created against the same Timeline. Implementations of this
+ * class will not be thread safe and are intended for use by a single thread, given the sequential
+ * nature of the data it returns.
  *
  * It will hold state, to keep track of the current offset as it scans along the timeline.
  *
@@ -53,21 +53,11 @@ public interface TimelineView {
 
     Instant getOffset();
 
-    //TODO should the builder for the TimelineView be in here?
-
-    //TODO should take/poll/stream/takeRange/etc be on the TimelineView as opposed to here
-    //as that will probably hold some form of internal queue with the data in it
-    List<Event> take(TimelineView timelineView, int takeCount);
-
-    List<Event> poll(TimelineView timelineView, int takeCount);
-
     /**
-     * Return an infinite stream of ordered events, will block if no events are available
+     * Return an infinite stream of ordered events, will block if no events are available.
+     * Due to the ordered nature of the events should be processed sequentially.
      */
-    Stream<Event> stream(TimelineView timelineView);
-
-    List<Event> takeRange(TimelineView timelineView, Instant fromOffset, Instant toOffset);
-
+    Stream<Event> stream(final TimelineView timelineView);
 
     /**
      * @return The unique identifier for the timeline

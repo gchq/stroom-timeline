@@ -55,6 +55,10 @@ public class RowKey {
         return Arrays.copyOfRange(bRowKey, SALT_LENGTH,ROW_KEY_LENGTH);
     }
 
+    public RowKey changeSalt(final byte[] newSalt) {
+        return new RowKey(newSalt, getEventTimeBytes());
+    }
+
     @Override
     public String toString() {
         return "RowKey{" +

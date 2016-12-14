@@ -21,6 +21,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Put;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
@@ -52,6 +53,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -164,8 +166,8 @@ public class TimelineTable extends AbstractTable {
         //count by the number of salts to get a row limit per scan (salt).
         final int scanMaxResults = rowCount / timelineView.getTimeline().getSalt().getSaltCount();
 
-        //The time that all delay calculations are based off for consistency
-        final Instant now = Instant.now();
+        //get a function to add a stop key if required
+        BiConsumer<Scan, RowKey> stopKeyFunction = getStopRowFunction(timelineView);
 
         //Initiate a table scan for each salt in parallel. Each scan will fetch blocks of
         //ordered events, with a gap between each block. Once all the blocks have been captured
@@ -173,87 +175,108 @@ public class TimelineTable extends AbstractTable {
         //single list of ordered events.
         List<Event> events = RowKeyAdapter.getAllStartKeys(timelineView)
                 .parallelStream()
-                .map(startKey -> {
-                    //Use a prefix filter to ensure we do start scanning into another salt's values
-                    PrefixFilter prefixFilter = new PrefixFilter(startKey.getSaltBytes());
-
-                    //The salted key will ensure the scan only goes to a single region
-                    Scan scan = new Scan(startKey.getRowKeyBytes())
-                            .addFamily(COL_FAMILY_CONTENT)
-                            .setMaxResultSize(scanMaxResults)
-                            .setFilter(prefixFilter);
-
-                    LogUtils.traceIfEnabled(LOGGER, () -> {
-                        LOGGER.trace("Creating scan for start key {} and max rows of {}",
-                                ByteArrayUtils.byteArrayToAllForms(startKey.getRowKeyBytes()), scanMaxResults);
-                    });
-
-                    //TODO need to set a stop row so we get one contiguous chunk of rows for a
-                    //time bucket and not jump onto another time bucket.
-                    //for now as the salt is hard coded it doesn't matter
-                    //This current code is too simplistic as it only deals with the delay and not the
-                    //salting
-                    if (!timelineView.getDelay().equals(Duration.ZERO)) {
-                        Instant notBeforeTime = now.minus(timelineView.getDelay());
-                        RowKey stopKey = RowKeyAdapter.getRowKey(startKey.getSaltBytes(), notBeforeTime);
-                        scan.setStopRow(stopKey.getRowKeyBytes());
-                        LOGGER.trace("Adding stop row {} for notBeforeTime: {}",
-                                ByteArrayUtils.byteArrayToAllForms(stopKey.getRowKeyBytes()), notBeforeTime);
-                    }
-
-                    final Map<Long, List<Event>> eventsForSalt;
-
-                    try (final Table table = hBaseConnection.getConnection().getTable(tableName)) {
-                        ResultScanner resultScanner = table.getScanner(scan);
-                        eventsForSalt = StreamSupport.stream(resultScanner.spliterator(), false)
-                                .sequential()
-                                .flatMap(scanResult -> {
-                                    //scanResult represents a single row, so decode the rowkey
-                                    //then get all the cells for the row, adding them
-                                    //to a collection
-                                    byte[] bRowKey = scanResult.getRow();
-                                    RowKey rowKey = new RowKey(bRowKey);
-                                    Instant rowTime = RowKeyAdapter.getEventTime(rowKey);
-                                    long timeBucketNo = timeline.getSalt().getTimeBucketNo(rowTime);
-
-                                    LogUtils.traceIfEnabled(LOGGER, () -> LOGGER.trace("Cell count on row {} is {}",
-                                            rowKey.toString(), scanResult.listCells().size()));
-
-                                    //return a stream of event objects
-                                    Stream<SaltedEvent> eventStream = scanResult.listCells()
-                                            .stream()
-                                            .map(cell -> {
-                                                byte[] content = CellUtil.cloneValue(cell);
-                                                Event event = new Event(rowTime, content);
-                                                return new SaltedEvent(timeBucketNo, event);
-                                            });
-                                    return eventStream;
-                                })
-                                .collect(Collectors.groupingBy(
-                                        SaltedEvent::getTimeBucketNo,
-                                        Collectors.mapping(
-                                                SaltedEvent::getEvent,
-                                                Collectors.toList())));
-                    } catch (IOException e) {
-                        //TODO what happens to the other threads if we come in here
-                        throw new RuntimeException(String.format("Error while trying to fetch %s rows from timeline %s with salt %s",
-                                rowCount, timeline, RowKeyAdapter.getSalt(startKey)), e);
-                    }
-
-                    LogUtils.traceIfEnabled(LOGGER, () -> {
-                        eventsForSalt.keySet().stream()
-                                .sorted()
-                                .map(val -> "timeBucketNo: " + val.toString())
-                                .forEach(LOGGER::trace);
-                    });
-                    return eventsForSalt.entrySet();
-                })
+                .map(startKey -> startKeyToEventsBatchMapper(scanMaxResults, stopKeyFunction, startKey))
                 .flatMap(Set::stream)
                 .sorted(Map.Entry.comparingByKey())
                 .flatMap(entry -> entry.getValue().stream())
                 .collect(Collectors.toList());
 
         return events;
+    }
+
+    /**
+     * For a given start key, scanMaxResults
+     */
+    private Set<Map.Entry<Long, List<Event>>> startKeyToEventsBatchMapper(
+            final int scanMaxResults, final BiConsumer<Scan, RowKey> stopRowFunction, final RowKey startKey) {
+
+        //Use a prefix filter to ensure we do start scanning into another salt's values
+        PrefixFilter prefixFilter = new PrefixFilter(startKey.getSaltBytes());
+
+        //The salted key will ensure the scan only goes to a single region
+        Scan scan = new Scan(startKey.getRowKeyBytes())
+                .addFamily(COL_FAMILY_CONTENT)
+                .setMaxResultSize(scanMaxResults)
+                .setFilter(prefixFilter);
+
+        LogUtils.traceIfEnabled(LOGGER, () -> {
+            LOGGER.trace("Creating scan for start key {} and max rows of {}",
+                    ByteArrayUtils.byteArrayToAllForms(startKey.getRowKeyBytes()), scanMaxResults);
+        });
+
+        stopRowFunction.accept(scan, startKey);
+
+        final Map<Long, List<Event>> eventsForSalt;
+
+        try (final Table table = hBaseConnection.getConnection().getTable(tableName)) {
+            ResultScanner resultScanner = table.getScanner(scan);
+            eventsForSalt = StreamSupport.stream(resultScanner.spliterator(), false)
+                    .sequential()
+                    .flatMap(this::scanResultToSaltedEventStreamConverter)
+                    .collect(Collectors.groupingBy(
+                            SaltedEvent::getTimeBucketNo,
+                            Collectors.mapping(
+                                    SaltedEvent::getEvent,
+                                    Collectors.toList())));
+        } catch (IOException e) {
+            throw new RuntimeException(String.format("Error while trying to fetch %s rows from timeline %s with salt %s",
+                    scanMaxResults, timeline, RowKeyAdapter.getSalt(startKey)), e);
+        }
+
+        LogUtils.traceIfEnabled(LOGGER, () -> {
+            eventsForSalt.keySet().stream()
+                    .sorted()
+                    .map(val -> "timeBucketNo: " + val.toString())
+                    .forEach(LOGGER::trace);
+        });
+        return eventsForSalt.entrySet();
+    }
+
+    private Stream<SaltedEvent> scanResultToSaltedEventStreamConverter(final Result scanResult) {
+
+        //scanResult represents a single row, so decode the rowkey
+        //then get all the cells for the row, adding them
+        //to a collection
+        byte[] bRowKey = scanResult.getRow();
+        RowKey rowKey = new RowKey(bRowKey);
+        Instant rowTime = RowKeyAdapter.getEventTime(rowKey);
+        long timeBucketNo = timeline.getSalt().getTimeBucketNo(rowTime);
+
+        LogUtils.traceIfEnabled(LOGGER, () -> LOGGER.trace("Cell count on row {} is {}",
+                rowKey.toString(), scanResult.listCells().size()));
+
+        //return a stream of event objects
+        Stream<SaltedEvent> eventStream = scanResult.listCells()
+                .stream()
+                .map(cell -> {
+                    byte[] content = CellUtil.cloneValue(cell);
+                    Event event = new Event(rowTime, content);
+                    return new SaltedEvent(timeBucketNo, event);
+                });
+        return eventStream;
+    }
+
+    private BiConsumer<Scan, RowKey> getStopRowFunction(final TimelineView timelineView) {
+
+        //The time that all delay calculations are based off for consistency
+        final Instant now = Instant.now();
+
+        //TODO need to set a stop row so we get one contiguous chunk of rows for a
+        //time bucket and not jump onto another time bucket.
+        //for now as the salt is hard coded it doesn't matter
+        //This current code is too simplistic as it only deals with the delay and not the
+        //salting
+        if (!timelineView.getDelay().equals(Duration.ZERO)) {
+            final Instant notBeforeTime = now.minus(timelineView.getDelay());
+            LOGGER.trace("Adding stop row for notBeforeTime: {}", notBeforeTime);
+            return (scan, startKey) -> {
+                final RowKey stopKey = RowKeyAdapter.getRowKey(startKey.getSaltBytes(), notBeforeTime);
+                scan.setStopRow(stopKey.getRowKeyBytes());
+            };
+        } else {
+            //no stop key to be applied
+            return (scan, startKey) -> {};
+        }
     }
 
     @Override
@@ -322,7 +345,7 @@ public class TimelineTable extends AbstractTable {
     /**
      * Convert a QualifiedCell object into a stream of HBase table Mutation objects
      */
-    private Function<QualifiedCell, Put> qualifiedCellToPutMapper = qualifiedCell -> {
+    private final Function<QualifiedCell, Put> qualifiedCellToPutMapper = qualifiedCell -> {
 
         RowKey rowKey = qualifiedCell.getRowKey();
         long eventTimeMs = RowKeyAdapter.getEventTime(rowKey).toEpochMilli();

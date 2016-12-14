@@ -22,7 +22,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stroom.timeline.api.TimelineView;
-import stroom.timeline.hbase.HBaseTimelineView;
+import stroom.timeline.hbase.HBaseTimelineViewBuilder;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.OrderedEvent;
 import stroom.timeline.model.Timeline;
@@ -169,7 +169,7 @@ public class TestTimelineTable extends AbstractTableTest {
 
         TimelineTable timelineTable = new TimelineTable(timeline, super.hBaseTestUtilConnection);
 
-        TimelineView timelineView = HBaseTimelineView.builder(timeline).build();
+        TimelineView timelineView = new HBaseTimelineViewBuilder(timeline, timelineTable).build();
 
         timelineTable.putEvents(events);
 

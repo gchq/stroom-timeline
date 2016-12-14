@@ -83,7 +83,7 @@ public class HBaseTimelineService implements TimelineService {
 
     @Override
     public TimelineViewBuilder getTimelineViewBuilder(Timeline timeline) {
-        return new HBaseTimelineViewBuilder(timeline);
+        return new HBaseTimelineViewBuilder(timeline, getTimelineTable(timeline));
     }
 
     private TimelineTable getTimelineTable(Timeline timeline) {

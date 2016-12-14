@@ -20,10 +20,11 @@ package stroom.timeline.model.identifier;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
+import stroom.timeline.test.AbstractTest;
 
 import java.nio.ByteBuffer;
 
-public class TestMultiPartIdentifier {
+public class TestMultiPartIdentifier extends AbstractTest {
 
     String strVal = "MyString";
     Long longVal = 123456789L;

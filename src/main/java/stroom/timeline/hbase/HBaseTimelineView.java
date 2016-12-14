@@ -18,28 +18,29 @@
 package stroom.timeline.hbase;
 
 import stroom.timeline.api.TimelineView;
+import stroom.timeline.hbase.table.TimelineTable;
 import stroom.timeline.model.Event;
 import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class HBaseTimelineView implements TimelineView {
 
     private final Timeline timeline;
+    private final TimelineTable timelineTable;
     private final Duration delay;
     private final Instant offset;
-//    private final QueueSpliterator<Event> eventQueueSpliterator;
-
-    //TODO create a queue so clients can grab events off the top and it can be refilled from the bottom
-    //by calls to HBase. We can then prefetch some events to keep the queue stocked up removing any latency
-    //between the call to take/poll and getting the results.
-
-
-    public static HBaseTimelineViewBuilder builder(Timeline timeline) {
-        return new HBaseTimelineViewBuilder(timeline);
-    }
+    private final Duration streamTimeout;
+    private final Duration topUpRetryInterval;
+    private final int fetchSize;
+    private final QueueSpliterator<Event> eventQueueSpliterator;
+    private final BlockingQueue<Event> eventQueue;
 
     @Override
     public Timeline getTimeline() {
@@ -57,17 +58,43 @@ public class HBaseTimelineView implements TimelineView {
     }
 
     @Override
-    public Stream<Event> stream(final TimelineView timelineView) {
-        return null;
+    public Duration getStreamTimeout() {
+        return streamTimeout;
     }
 
-    HBaseTimelineView(Timeline timeline, Duration delay, Instant offset) {
+    @Override
+    public Duration getTopUpRetryInterval() {
+        return topUpRetryInterval;
+    }
+
+    @Override
+    public int getFetchSize() {
+        return fetchSize;
+    }
+
+    @Override
+    public Stream<Event> stream(final TimelineView timelineView) {
+        return StreamSupport.stream(eventQueueSpliterator,false);
+    }
+
+    HBaseTimelineView(final Timeline timeline, final TimelineTable timelineTable,
+                      final Duration delay, final Instant offset,
+                      final Duration streamTimeout, final Duration topUpRetryInterval,
+                      final int fetchSize) {
+
         this.timeline = timeline;
+        this.timelineTable = timelineTable;
         this.delay = delay;
         this.offset = offset;
-//        eventQueueSpliterator
-    }
+        this.streamTimeout = streamTimeout;
+        this.topUpRetryInterval = topUpRetryInterval;
+        this.fetchSize = fetchSize;
+        this.eventQueue = new LinkedBlockingQueue<>();
 
+        Supplier<Stream<Event>> eventSupplier = () -> timelineTable.streamEvents(this, fetchSize);
+
+        eventQueueSpliterator = new QueueSpliterator<>(eventQueue, streamTimeout, eventSupplier, topUpRetryInterval);
+    }
 
     @Override
     public String toString() {
@@ -75,6 +102,9 @@ public class HBaseTimelineView implements TimelineView {
                 "timeline=" + timeline +
                 ", delay=" + delay +
                 ", offset=" + offset +
+                ", streamTimeout=" + streamTimeout +
+                ", topUpRetryInterval=" + topUpRetryInterval +
+                ", fetchSize=" + fetchSize +
                 '}';
     }
 }

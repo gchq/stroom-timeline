@@ -22,12 +22,13 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import stroom.timeline.test.AbstractTest;
 import stroom.timeline.util.ByteArrayUtils;
 
 import java.time.Instant;
 import java.util.Arrays;
 
-public class TestRowKey {
+public class TestRowKey extends AbstractTest {
     private static final Logger LOGGER = LoggerFactory.getLogger(TestRowKey.class);
 
     @Test

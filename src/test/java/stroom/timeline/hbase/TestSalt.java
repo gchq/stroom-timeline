@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import stroom.timeline.model.Salt;
 import stroom.timeline.model.SaltedRange;
+import stroom.timeline.test.AbstractTest;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,7 +34,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
-public class TestSalt {
+public class TestSalt extends AbstractTest {
     @Test
     public void computeSalt() throws Exception {
 

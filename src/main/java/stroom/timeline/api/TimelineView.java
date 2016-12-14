@@ -53,6 +53,12 @@ public interface TimelineView {
 
     Instant getOffset();
 
+    Duration getStreamTimeout();
+
+    Duration getTopUpRetryInterval();
+
+    int getFetchSize();
+
     /**
      * Return an infinite stream of ordered events, will block if no events are available.
      * Due to the ordered nature of the events should be processed sequentially.

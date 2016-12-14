@@ -40,6 +40,23 @@ public interface TimelineViewBuilder {
     TimelineViewBuilder setOffset(Instant offset);
 
     /**
+     * @param streamTimeout The time from attempting to top up the TimelineView with more events
+     *                      to the stream terminating
+     */
+    TimelineViewBuilder setStreamTimeout(Duration streamTimeout);
+
+    /**
+     * @param topUpRetryDelay The time between each attempt to top up the TimelineView with more events.
+     */
+    TimelineViewBuilder setTopUpRetryDelay(Duration topUpRetryDelay);
+
+    /**
+     * @param rowCount The number of rows to fetch each time from the underlying timeline table. The
+     *                 fetched events will be buffered in the TimelineView.
+     */
+    TimelineViewBuilder setFetchSize(int rowCount);
+
+    /**
      * Builds the new view
      * @return A new instance of a view over a timeline.
      */

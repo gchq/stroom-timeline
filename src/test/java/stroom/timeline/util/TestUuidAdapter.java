@@ -18,10 +18,11 @@ package stroom.timeline.util;
 
 import org.junit.Assert;
 import org.junit.Test;
+import stroom.timeline.test.AbstractTest;
 
 import java.util.UUID;
 
-public class TestUuidAdapter {
+public class TestUuidAdapter extends AbstractTest {
 
     @Test
     public void testByteLength(){

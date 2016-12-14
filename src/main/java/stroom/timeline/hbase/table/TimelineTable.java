@@ -150,6 +150,10 @@ public class TimelineTable extends AbstractTable {
 
 
     public List<Event> fetchEvents(TimelineView timelineView, int rowCount) {
+       return streamEvents(timelineView, rowCount).collect(Collectors.toList());
+    }
+
+    public Stream<Event> streamEvents(TimelineView timelineView, int rowCount) {
         Preconditions.checkNotNull(timelineView);
         Preconditions.checkArgument(rowCount >= 1, "rowCount must be >= 1");
 
@@ -173,15 +177,14 @@ public class TimelineTable extends AbstractTable {
         //ordered events, with a gap between each block. Once all the blocks have been captured
         //from each scan the blocks need to be assembled into time order to produce a
         //single list of ordered events.
-        List<Event> events = RowKeyAdapter.getAllStartKeys(timelineView)
+        Stream<Event> eventsStream = RowKeyAdapter.getAllStartKeys(timelineView)
                 .parallelStream()
                 .map(startKey -> startKeyToEventsBatchMapper(scanMaxResults, stopKeyFunction, startKey))
                 .flatMap(Set::stream)
                 .sorted(Map.Entry.comparingByKey())
-                .flatMap(entry -> entry.getValue().stream())
-                .collect(Collectors.toList());
+                .flatMap(entry -> entry.getValue().stream());
 
-        return events;
+        return eventsStream;
     }
 
     /**

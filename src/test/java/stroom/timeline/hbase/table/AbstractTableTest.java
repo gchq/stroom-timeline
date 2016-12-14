@@ -20,8 +20,9 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import stroom.timeline.hbase.HBaseTestUtilConnection;
+import stroom.timeline.test.AbstractTest;
 
-public class AbstractTableTest {
+public class AbstractTableTest extends AbstractTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTableTest.class);
 

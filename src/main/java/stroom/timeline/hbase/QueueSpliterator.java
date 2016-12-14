@@ -19,16 +19,16 @@ package stroom.timeline.hbase;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Spliterator;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 /*
  * This class is based on code from http://stackoverflow.com/questions/23462209/stream-api-and-queues-in-java-8
@@ -38,12 +38,13 @@ import java.util.function.Supplier;
  * The head of the queue is the oldest item
  */
 public class QueueSpliterator<T> implements Spliterator<T> {
+
     private final BlockingQueue<T> queue;
     private final Duration timeout;
-    private final Supplier<List<T>> itemsSupplier;
+    private final Supplier<Stream<T>> itemsSupplier;
     private final Duration topUpRetryInterval;
 
-    public QueueSpliterator(final BlockingQueue<T> queue, final Duration timeout, final Supplier<List<T>> itemsSupplier, final Duration topUpRetryInterval) {
+    public QueueSpliterator(final BlockingQueue<T> queue, final Duration timeout, final Supplier<Stream<T>> itemsSupplier, final Duration topUpRetryInterval) {
         this.queue = queue;
         this.timeout = timeout;
         this.itemsSupplier = itemsSupplier;
@@ -62,12 +63,23 @@ public class QueueSpliterator<T> implements Spliterator<T> {
 
     @Override
     public boolean tryAdvance(final Consumer<? super T> action) {
+        //The stream consumer is trying to get another item off the stream
         if (queue.isEmpty()) {
-            topUpQueue();
+            //initiate an asynchronous top up of the queue.  The Poll method below will handle waiting
+            //for the items to appear in the queue
+            ExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+            executorService.submit(this::topUpQueue);
         }
         //We are the only thread on this queue so now it has been topped up we can poll.
         //The top up may have added nothing if the timeout was reached in which case the stream will end
-        final T next = queue.poll();
+        final T next;
+        try {
+            next = queue.poll(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            //thread has been interrupted so give up and return nothing
+            Thread.currentThread().interrupt();
+            return false;
+        }
         if (next == null) {
             return false;
         }
@@ -76,40 +88,45 @@ public class QueueSpliterator<T> implements Spliterator<T> {
     }
 
     private void topUpQueue() {
-        List<T> items = itemsSupplier.get();
+        final AtomicLong counter = new AtomicLong();
 
-        Instant startTime = Instant.now();
+        Runnable fetchAndAddTask = () -> {
+            //attempt to top up the queue, keeping track of how many events we add
+            //items.get(0) is the oldest item in the list
+            itemsSupplier.get()
+                    .peek(event -> counter.incrementAndGet())
+                    .forEach(queue::add);
+        };
 
-        //Keep trying to get new items
-        while (items.isEmpty()) {
+        //First crack at fetching events
+        fetchAndAddTask.run();
+
+        if (counter.get() == 0) {
+            Instant startTime = Instant.now();
             ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-            final FutureTask<List<T>> futureTask = new FutureTask<List<T>>(itemsSupplier::get);
-            scheduledExecutorService.schedule(futureTask, 1, TimeUnit.SECONDS);
-            Duration timeSinceStart = Duration.between(startTime, Instant.now());
-            if (!timeSinceStart.isNegative() && timeSinceStart.compareTo(timeout) < 0) {
-                long taskTimeoutMs = timeout.minus(timeSinceStart).toMillis();
-                try {
-                    scheduledExecutorService.awaitTermination(taskTimeoutMs, TimeUnit.MILLISECONDS);
+
+            //Keep trying to get new items if we didn't succeed before
+            while (counter.get() == 0L) {
+
+                scheduledExecutorService.schedule(fetchAndAddTask, topUpRetryInterval.toMillis(), TimeUnit.MILLISECONDS);
+
+                Duration timeSinceStart = Duration.between(startTime, Instant.now());
+                if (!timeSinceStart.isNegative() && timeSinceStart.compareTo(timeout) < 0) {
+                    long taskTimeoutMs = timeout.minus(timeSinceStart).toMillis();
                     try {
-                        items = futureTask.get();
-                    } catch (ExecutionException e) {
-                        throw new RuntimeException("Error attempting to top up the queue", e);
+                        //ensure the task has completed
+                        scheduledExecutorService.awaitTermination(taskTimeoutMs, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        //thread has been interrupted so give up and return nothing
+                        Thread.currentThread().interrupt();
+                        break;
                     }
-                } catch (InterruptedException e) {
-                    //thread has been interupted so give up and return nothing
-                    Thread.currentThread().interrupt();
+                } else {
+                    //timeout reached so give up and return nothing
                     break;
                 }
-
-            } else {
-                //timeout reached so give up and return nothing
-                break;
             }
         }
-
-        //items.get(0) is the oldest item in the list
-        //top up the queue with all the items
-        items.forEach(queue::add);
     }
 
     @Override

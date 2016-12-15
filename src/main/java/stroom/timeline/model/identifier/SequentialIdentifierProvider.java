@@ -25,8 +25,8 @@ public interface SequentialIdentifierProvider<T> {
 
     /**
      * @return The sequence number as a byte array. The identifier needs
-     * to be converted into bytes in such a way that if idB > idB then
-     * idB.getBytes() > idA.getBytes() lexicographically.
+     * to be converted into bytes in such a way that if idB &gt; idB then
+     * idB.getBytes() &gt; idA.getBytes() lexicographically.
      *
      * Also the byte[] representation of the identifier should ideally
      * be as compact as possible.

@@ -1,3 +1,7 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '1.2.4'
+}
+
 apply plugin: 'idea'
 apply plugin: 'java'
 apply plugin: 'maven-publish'
@@ -46,7 +50,7 @@ task sourceJar(type: Jar){
 
 publishing {
     publications {
-        ruleService(MavenPublication) {
+        stroomTimeline(MavenPublication) {
             groupId 'stroom'
             artifactId 'timeline'
             version '1.0-SNAPSHOT'

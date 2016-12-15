@@ -94,7 +94,7 @@ public class Salt {
         return salts;
     }
 
-    public  short nextSalt(final short currentSalt, final int saltCount) {
+    public  short nextSalt(final short currentSalt) {
         short salt = currentSalt;
         return (++salt == saltCount) ? 0 : salt;
     }
@@ -103,6 +103,7 @@ public class Salt {
      * Starting from the salted range of the start time build the set of contiguous salted ranges until
      * there is one for each salt value
      */
+    @Deprecated //not being used anywhere
     public List<SaltedRange> getSaltedRanges(final Instant startTime) {
         Preconditions.checkArgument(saltCount > 1, "No concept of saltedRanges for a single salt value");
         Preconditions.checkNotNull(startTime);
@@ -119,7 +120,7 @@ public class Salt {
             Instant rangeEndExcl = rangeStartInc.plus(saltRangeDuration);
             ranges.add(new SaltedRange(currentSalt, rangeStartInc, rangeEndExcl));
             workingTime = rangeEndExcl;
-            currentSalt = nextSalt(currentSalt, saltCount);
+            currentSalt = nextSalt(currentSalt);
         } while (currentSalt != firstSalt);
 
         return ranges;

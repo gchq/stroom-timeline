@@ -12,25 +12,19 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package stroom.timeline.util;
 
+package stroom.timeline.hbase;
 
-import org.junit.Assert;
 import org.junit.Test;
 import stroom.timeline.test.AbstractTest;
 
-import java.util.UUID;
-
-public class TestUuidAdapter extends AbstractTest {
+public class TestHBaseTimelineView extends AbstractTest {
 
     @Test
-    public void testByteLength(){
-        UUID uuid = UUID.randomUUID();
+    public void stream() throws Exception {
 
-        byte[] bUuid = UuidAdapter.getBytesFromUUID(uuid);
-        Assert.assertEquals(16, bUuid.length);
     }
-
 
 }

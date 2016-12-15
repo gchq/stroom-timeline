@@ -20,7 +20,6 @@ import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Table;
-import org.slf4j.Logger;
 import stroom.timeline.hbase.HBaseConnection;
 
 import java.io.IOException;
@@ -62,8 +61,20 @@ public abstract class AbstractTable {
         }
     }
 
-    Table getTable() throws IOException {
-        return hBaseConnection.getConnection().getTable(getTableName());
+    Table getTable() {
+        try {
+            return hBaseConnection.getConnection().getTable(getTableName());
+        } catch (IOException e) {
+            throw new RuntimeException("Error getting table object for table name " + getTableName().toString(), e);
+        }
+    }
+
+    void closeTable(Table table) {
+        try {
+            table.close();
+        } catch (IOException e) {
+            throw new RuntimeException("Error closing table object for table name " + getTableName().toString(), e);
+        }
     }
 
     /**

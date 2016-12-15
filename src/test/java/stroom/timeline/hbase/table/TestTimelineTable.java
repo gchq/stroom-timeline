@@ -19,15 +19,20 @@ package stroom.timeline.hbase.table;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;
-import stroom.timeline.model.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import stroom.timeline.api.TimelineView;
+import stroom.timeline.hbase.HBaseTimelineViewBuilder;
+import stroom.timeline.model.Event;
+import stroom.timeline.model.OrderedEvent;
+import stroom.timeline.model.Timeline;
 import stroom.timeline.model.identifier.LongSequentialIdentifier;
 import stroom.timeline.properties.MockPropertyService;
-import stroom.timeline.api.TimelineView;
-import stroom.timeline.hbase.HBaseTimelineView;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -35,9 +40,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 public class TestTimelineTable extends AbstractTableTest {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestTimelineTable.class);
 
     MockPropertyService propertyService = new MockPropertyService();
 
@@ -67,13 +74,12 @@ public class TestTimelineTable extends AbstractTableTest {
 
 
     @Test
-    public void testFecthEvents() throws InterruptedException {
+    public void testFecthEvents_singleSalt() throws Exception {
 
         //put a load of events into the table, in a random order
 
         ZonedDateTime now = ZonedDateTime.now();
         Instant startTime = Instant.now();
-        List<OrderedEvent> events = new ArrayList<>();
 
         final AtomicLong counter = new AtomicLong(0);
         final int eventCount = 1000;
@@ -89,33 +95,110 @@ public class TestTimelineTable extends AbstractTableTest {
                 })
                 .collect(Collectors.toList());
 
-//        randomEvents.stream().forEach(System.out::println);
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400))
+                .assignId(1);
 
-//        System.out.println("---------------------------");
+        doPutThenFetch(randomEvents, timeline);
+    }
 
-        List<Event> eventsInOrder = randomEvents.stream()
+    @Test
+    public void testFecthEvents_fourSalts_oneBandPerSalt_oneEventsPerSalt() throws Exception {
+
+        //put a load of events into the table, in a random order
+
+        final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
+        final int saltCount = 4;
+        final Duration saltRange = Duration.ofSeconds(1);
+        final int eventsPerSaltRange = 1;
+        final int totalEvents = eventsPerSaltRange * saltCount;
+        final Duration eventDelta = saltRange.dividedBy(eventsPerSaltRange);
+
+        final AtomicLong counter = new AtomicLong(0);
+        List<OrderedEvent> randomEvents = LongStream.range(0, totalEvents)
+                .boxed()
+                .map(i -> {
+                    Instant eventTime = startTime.plus(eventDelta.multipliedBy(i)).toInstant();
+                    byte[] content = Bytes.toBytes(counter.incrementAndGet());
+                    LongSequentialIdentifier idProvider = new LongSequentialIdentifier(counter.get());
+                    return new OrderedEvent(eventTime, content, idProvider);
+                })
+                .collect(Collectors.toList());
+
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000), saltCount, saltRange)
+                .assignId(1);
+
+        doPutThenFetch(randomEvents, timeline);
+    }
+
+    @Test
+    public void testFecthEvents_fourSalts_oneBandPerSalt_fourEventsPerSalt() throws Exception {
+
+        //put a load of events into the table, in a random order
+
+        final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
+        final int saltCount = 4;
+        final Duration saltRange = Duration.ofSeconds(1);
+        final int eventsPerSaltRange = 4;
+        final int totalEvents = eventsPerSaltRange * saltCount;
+        final Duration eventDelta = saltRange.dividedBy(eventsPerSaltRange);
+
+        final AtomicLong counter = new AtomicLong(0);
+        List<OrderedEvent> randomEvents = LongStream.range(0, totalEvents)
+                .boxed()
+                .map(i -> {
+                    Instant eventTime = startTime.plus(eventDelta.multipliedBy(i)).toInstant();
+                    byte[] content = Bytes.toBytes(counter.incrementAndGet());
+                    LongSequentialIdentifier idProvider = new LongSequentialIdentifier(counter.get());
+                    return new OrderedEvent(eventTime, content, idProvider);
+                })
+                .collect(Collectors.toList());
+
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000), saltCount, saltRange)
+                .assignId(1);
+
+        doPutThenFetch(randomEvents, timeline);
+    }
+
+    public List<Event> doPutThenFetch(List<OrderedEvent> events, Timeline timeline) throws InterruptedException, IOException {
+
+        //put a load of events into the table, in a random order
+        List<Event> eventsInOrder = events.stream()
                 .sorted()
                 .map(OrderedEvent::getEvent)
                 .collect(Collectors.toList());
 
-//        eventsInOrder.stream().forEach(System.out::println);
-
-        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(400), 4, Duration.ofMillis(250))
-                .assignId(1);
-
         TimelineTable timelineTable = new TimelineTable(timeline, super.hBaseTestUtilConnection);
 
-        TimelineView timelineView = HBaseTimelineView.builder(timeline).build();
+        TimelineView timelineView = new HBaseTimelineViewBuilder(timeline, timelineTable).build();
 
-        timelineTable.putEvents(randomEvents);
+        timelineTable.putEvents(events);
+
+        long cellCount = hBaseTestUtilConnection.getCellCount(TimelineTable.SHORT_NAME_PREFIX + timeline.getId(), TimelineTable.COL_FAMILY_CONTENT );
+
+        LOGGER.info("Cell count: {}", cellCount);
 
         //fetch all events from the table and compare to a sorted list of the input events
         List<Event> eventsFromFetch = timelineTable.fetchEvents(timelineView, 5000);
 
-        Assert.assertEquals(eventCount, eventsInOrder.size());
-        Assert.assertEquals(eventCount, eventsFromFetch.size());
+        if (events.size() <= 100) {
+            logList(events, "Source events");
+            logList(eventsInOrder, "Source events (ordered)");
+            logList(eventsFromFetch, "Events from fetch");
+        }
+
+        Assert.assertEquals(events.size(), eventsInOrder.size());
+        Assert.assertEquals(events.size(), eventsFromFetch.size());
 
         Assert.assertEquals(eventsInOrder, eventsFromFetch);
+
+        return eventsFromFetch;
+    }
+
+    private <T> void logList(List<T> list, String listName) {
+        LOGGER.debug(listName + ":");
+        list.stream()
+                .map(T::toString)
+                .forEach(LOGGER::debug);
 
     }
 

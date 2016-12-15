@@ -17,6 +17,7 @@ package stroom.timeline.model;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 
 public class Event implements Comparable<Event> {
     private final Instant eventTime;
@@ -64,4 +65,13 @@ public class Event implements Comparable<Event> {
         result = 31 * result + Arrays.hashCode(content);
         return result;
     }
+
+    public static class EventComparator implements Comparator<Event> {
+
+        @Override
+        public int compare(final Event o1, final Event o2) {
+            return o1.compareTo(o2);
+        }
+    }
+
 }

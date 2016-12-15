@@ -19,23 +19,24 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import stroom.timeline.hbase.HBaseTestUtilConnection;
+import stroom.timeline.hbase.HBaseTestingUtilConnection;
+import stroom.timeline.test.AbstractTest;
 
-public class AbstractTableTest {
+public class AbstractTableTest extends AbstractTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTableTest.class);
 
-    HBaseTestUtilConnection hBaseTestUtilConnection = new HBaseTestUtilConnection();
+    HBaseTestingUtilConnection hBaseTestUtilConnection = new HBaseTestingUtilConnection();
 
     @Before
     public void setUp() throws Exception {
-        LOGGER.info("Setting up HBaseTestUtilConnection");
+        LOGGER.info("Setting up HBaseTestingUtilConnection");
         hBaseTestUtilConnection.setup();
     }
 
     @After
     public void tearDown() throws Exception {
-        LOGGER.info("Tearing down HBaseTestUtilConnection");
+        LOGGER.info("Tearing down HBaseTestingUtilConnection");
         hBaseTestUtilConnection.teardown();
     }
 }

@@ -20,19 +20,26 @@ package stroom.timeline.hbase;
 import com.google.common.base.Preconditions;
 import stroom.timeline.api.TimelineView;
 import stroom.timeline.api.TimelineViewBuilder;
+import stroom.timeline.hbase.table.TimelineTable;
 import stroom.timeline.model.Timeline;
 
 import java.time.Duration;
 import java.time.Instant;
 
 public class HBaseTimelineViewBuilder implements TimelineViewBuilder {
-    private Timeline timeline;
+    private final Timeline timeline;
+    private final TimelineTable timelineTable;
     private Duration delay = Duration.ZERO;
     private Instant offset = Instant.EPOCH;
+    private Duration streamTimout = Duration.ofMillis(Long.MAX_VALUE);
+    private Duration topUpRetryDelay = Duration.ofSeconds(1);
+    private int fetchSize = 1000;
 
-    public HBaseTimelineViewBuilder(Timeline timeline) {
+    public HBaseTimelineViewBuilder(final Timeline timeline, final TimelineTable timelineTable) {
         Preconditions.checkNotNull(timeline);
+        Preconditions.checkNotNull(timelineTable);
         this.timeline = timeline;
+        this.timelineTable = timelineTable;
     }
 
     @Override
@@ -50,7 +57,28 @@ public class HBaseTimelineViewBuilder implements TimelineViewBuilder {
     }
 
     @Override
+    public TimelineViewBuilder setStreamTimeout(final Duration streamTimeout) {
+        Preconditions.checkNotNull(streamTimeout);
+        this.streamTimout = streamTimeout;
+        return this;
+    }
+
+    @Override
+    public TimelineViewBuilder setTopUpRetryDelay(final Duration topUpRetryDelay) {
+        Preconditions.checkNotNull(topUpRetryDelay);
+        this.topUpRetryDelay = topUpRetryDelay;
+        return this;
+    }
+
+    @Override
+    public TimelineViewBuilder setFetchSize(final int rowCount) {
+        Preconditions.checkArgument(rowCount >= 1, "rowCount must be >= 1");
+        this.fetchSize = rowCount;
+        return this;
+    }
+
+    @Override
     public TimelineView build() {
-        return new HBaseTimelineView(timeline, delay, offset);
+        return new HBaseTimelineView(timeline, timelineTable, delay, offset, streamTimout, topUpRetryDelay, fetchSize);
     }
 }

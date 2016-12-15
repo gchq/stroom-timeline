@@ -63,7 +63,7 @@ public interface TimelineView {
      * Return an infinite stream of ordered events, will block if no events are available.
      * Due to the ordered nature of the events should be processed sequentially.
      */
-    Stream<Event> stream(final TimelineView timelineView);
+    Stream<Event> stream();
 
     /**
      * @return The unique identifier for the timeline

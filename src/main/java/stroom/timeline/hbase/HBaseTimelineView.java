@@ -72,7 +72,7 @@ public class HBaseTimelineView implements TimelineView {
     }
 
     @Override
-    public Stream<Event> stream(final TimelineView timelineView) {
+    public Stream<Event> stream() {
         return bufferedEventStream.stream()
                 .sequential();
     }

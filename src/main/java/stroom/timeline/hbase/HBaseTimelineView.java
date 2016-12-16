@@ -40,6 +40,7 @@ public class HBaseTimelineView implements TimelineView {
     private final int fetchSize;
     private final BufferedStream<Event> bufferedEventStream;
     private final BlockingQueue<Event> eventQueue;
+    private boolean hasStreamBeenUsed = false;
 
     @Override
     public Timeline getTimeline() {
@@ -73,6 +74,11 @@ public class HBaseTimelineView implements TimelineView {
 
     @Override
     public Stream<Event> stream() {
+        if (hasStreamBeenUsed){
+            throw new RuntimeException("stream() cannot be called more than once. Create a new TimelineView instance to get a new stream");
+        } else {
+            hasStreamBeenUsed = true;
+        }
         return bufferedEventStream.stream()
                 .sequential();
     }

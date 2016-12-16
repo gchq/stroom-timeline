@@ -76,7 +76,8 @@ public class TestTimelineTable extends AbstractTableTest {
     @Test
     public void testFecthEvents_singleSalt() throws Exception {
 
-        //put a load of events into the table, in a random order
+        //put a load of events into the table, in a random order and make sure they come back
+        //out in order
 
         ZonedDateTime now = ZonedDateTime.now();
         Instant startTime = Instant.now();
@@ -103,8 +104,6 @@ public class TestTimelineTable extends AbstractTableTest {
 
     @Test
     public void testFecthEvents_fourSalts_oneBandPerSalt_oneEventsPerSalt() throws Exception {
-
-        //put a load of events into the table, in a random order
 
         final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
         final int saltCount = 4;
@@ -133,12 +132,40 @@ public class TestTimelineTable extends AbstractTableTest {
     @Test
     public void testFecthEvents_fourSalts_oneBandPerSalt_fourEventsPerSalt() throws Exception {
 
-        //put a load of events into the table, in a random order
+        final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
+        final int saltCount = 4;
+        final Duration saltRange = Duration.ofSeconds(1);
+        final int eventsPerSaltRange = 4;
+        final int totalEvents = eventsPerSaltRange * saltCount;
+        final Duration eventDelta = saltRange.dividedBy(eventsPerSaltRange);
+
+        final AtomicLong counter = new AtomicLong(0);
+        List<OrderedEvent> randomEvents = LongStream.range(0, totalEvents)
+                .boxed()
+                .map(i -> {
+                    Instant eventTime = startTime.plus(eventDelta.multipliedBy(i)).toInstant();
+                    byte[] content = Bytes.toBytes(counter.incrementAndGet());
+                    LongSequentialIdentifier idProvider = new LongSequentialIdentifier(counter.get());
+                    return new OrderedEvent(eventTime, content, idProvider);
+                })
+                .collect(Collectors.toList());
+
+        Timeline timeline = new Timeline("Timeline1", Duration.ofDays(1000), saltCount, saltRange)
+                .assignId(1);
+
+        doPutThenFetch(randomEvents, timeline);
+    }
+
+    @Test
+    public void testFecthEvents_fourSalts_twoBandsPerSalt_fourEventsPerSalt() throws Exception {
 
         final ZonedDateTime startTime = ZonedDateTime.of(2016,12,13,10,35,0,0, ZoneOffset.UTC);
         final int saltCount = 4;
         final Duration saltRange = Duration.ofSeconds(1);
         final int eventsPerSaltRange = 4;
+
+        //TODO this test is WIP, need to add multiple bands logic
+        Assert.assertTrue(false);
         final int totalEvents = eventsPerSaltRange * saltCount;
         final Duration eventDelta = saltRange.dividedBy(eventsPerSaltRange);
 

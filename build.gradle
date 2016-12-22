@@ -1,0 +1,69 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '1.2.4'
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+
+group 'stroom'
+version '1.0-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+    jcenter()
+    mavenLocal()
+}
+
+javadoc {
+    source = sourceSets.main.allJava
+    classpath = configurations.compile
+}
+
+dependencies {
+    compile ('org.apache.hbase:hbase-client:1.1.0.1') {
+        exclude group:'org.slf4j', module:'slf4j-log4j12'
+        exclude group:'log4j', module:'log4j'
+    }
+    compile ('org.apache.hbase:hbase-testing-util:1.1.0.1'){
+        exclude group:'org.slf4j', module:'slf4j-log4j12'
+        exclude group:'log4j', module:'log4j'
+    }
+    
+    compile 'org.slf4j:slf4j-api:1.7.21'
+    compile 'org.slf4j:log4j-over-slf4j:1.7.21'
+    compile 'org.slf4j:jcl-over-slf4j:1.7.21'
+    compile 'ch.qos.logback:logback-classic:1.1.8'
+    compile 'ch.qos.logback:logback-core:1.1.8'
+
+    compile 'com.google.guava:guava:14.0'
+
+    testCompile "org.mockito:mockito-core:2.+"
+    testCompile "net.bytebuddy:byte-buddy:1.5.8"
+    testCompile 'junit:junit:4.12'
+}
+
+task sourceJar(type: Jar){
+    from sourceSets.main.allJava
+    classifier 'sources'
+}
+
+shadowJar {
+    // If we don't relocate Jersey 1.0 packages they will conflict with anything that needs Jersey 2.0, e.g. Dropwizard.
+    relocate 'com.sun.jersey', 'shadow.com.sun.jersey'
+    relocate 'javax.ws.rs', 'shadow.javax.ws.rs'
+}
+
+
+publishing {
+    publications {
+        stroomTimeline(MavenPublication) {
+            groupId 'stroom'
+            artifactId 'timeline'
+            version '1.0-SNAPSHOT'
+            from components.java
+            artifact sourceJar
+            artifact shadowJar
+        }
+    }
+}

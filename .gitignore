@@ -5,3 +5,9 @@ target/
 *.swp
 node_modules
 _book
+**/.gradle
+**/build
+**/out
+**/*.iml
+**/*.ipr
+**/*.iws

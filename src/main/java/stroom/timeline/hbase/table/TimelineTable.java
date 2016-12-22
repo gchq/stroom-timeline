@@ -65,7 +65,7 @@ import java.util.stream.StreamSupport;
  * This is how the data is stored, assuming a contiguous data set.
  * <p>
  * |   min 1   |  min 2    | min 3     |
- * salt|---------------time-------------------->
+ * salt|---------------time--------------------
  * 0   | ###         ###         ###
  * 1   |    ###         ###         ###
  * 2   |       ###         ###         ###

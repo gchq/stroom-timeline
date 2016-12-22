@@ -29,7 +29,7 @@ import java.util.stream.StreamSupport;
  * Class for representing a complex multi-part identifier such as when you
  * have a compound key. If the parts are hierarchical in nature, e.g.
  * BatchNo:IdInBatch then they should be provided to the constructor in the
- * order outer -> inner to ensure correct ordering in the Timeline.
+ * order outer -&gt; inner to ensure correct ordering in the Timeline.
  * Despite the name it will support a single identifier.
  * Currently supported types are: String, Long, Integer, Double, Float, BigDecimal.
  */

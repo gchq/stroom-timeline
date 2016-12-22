@@ -48,6 +48,12 @@ task sourceJar(type: Jar){
     classifier 'sources'
 }
 
+shadowJar {
+    relocate 'com.sun.jersey', 'shadow.com.sun.jersey'
+    relocate 'javax.ws.rs', 'shadow.javax.ws.rs'
+}
+
+
 publishing {
     publications {
         stroomTimeline(MavenPublication) {
@@ -56,6 +62,7 @@ publishing {
             version '1.0-SNAPSHOT'
             from components.java
             artifact sourceJar
+            artifact shadowJar
         }
     }
 }

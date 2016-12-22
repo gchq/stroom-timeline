@@ -49,6 +49,7 @@ task sourceJar(type: Jar){
 }
 
 shadowJar {
+    // If we don't relocate Jersey 1.0 packages they will conflict with anything that needs Jersey 2.0, e.g. Dropwizard.
     relocate 'com.sun.jersey', 'shadow.com.sun.jersey'
     relocate 'javax.ws.rs', 'shadow.javax.ws.rs'
 }
